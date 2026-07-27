@@ -1,0 +1,431 @@
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { v4 as uuidv4 } from 'uuid';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { db } from '../db/database';
+
+function StatsSection() {
+  const { t, i18n } = useTranslation();
+  const [maxWeightData, setMaxWeightData] = useState([]);
+  const [frequencyData, setFrequencyData] = useState([]);
+  const [prs, setPrs] = useState([]);
+  const [selectedExercise, setSelectedExercise] = useState('');
+  const [exercises, setExercises] = useState([]);
+
+  useEffect(() => {
+    db.exercises.toArray().then(exs => {
+      setExercises(exs);
+      if (exs.length > 0) setSelectedExercise(exs[0].id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedExercise) return;
+    db.workouts.where('finishedAt').above(0).toArray().then(workouts => {
+      const data = [];
+      workouts.sort((a, b) => a.date - b.date).forEach(w => {
+        const ex = w.exercises.find(e => e.exerciseId === selectedExercise);
+        if (ex) {
+          const maxW = Math.max(...ex.sets.filter(s => s.weight != null).map(s => s.weight), 0);
+          if (maxW > 0) {
+            data.push({
+              date: new Date(w.date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric' }),
+              weight: maxW,
+            });
+          }
+        }
+      });
+      setMaxWeightData(data);
+    });
+  }, [selectedExercise, i18n.language]);
+
+  useEffect(() => {
+    db.workouts.where('finishedAt').above(0).toArray().then(workouts => {
+      const weekMap = {};
+      workouts.forEach(w => {
+        const d = new Date(w.date);
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay());
+        const key = weekStart.toISOString().split('T')[0];
+        weekMap[key] = (weekMap[key] || 0) + 1;
+      });
+      const data = Object.entries(weekMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-12)
+        .map(([week, count]) => ({
+          week: new Date(week).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric' }),
+          count,
+        }));
+      setFrequencyData(data);
+    });
+  }, [i18n.language]);
+
+  useEffect(() => {
+    db.workouts.where('finishedAt').above(0).toArray().then(async (workouts) => {
+      const prMap = {};
+      const exMap = {};
+      const allExs = await db.exercises.toArray();
+      allExs.forEach(e => { exMap[e.id] = e; });
+
+      workouts.forEach(w => {
+        w.exercises.forEach(ex => {
+          ex.sets.forEach(s => {
+            if (s.weight != null && s.reps != null) {
+              const key = ex.exerciseId;
+              const volume = s.weight * s.reps;
+              if (!prMap[key] || volume > prMap[key].volume) {
+                prMap[key] = { weight: s.weight, reps: s.reps, volume, date: w.date };
+              }
+            }
+          });
+        });
+      });
+
+      const list = Object.entries(prMap).map(([exId, pr]) => ({
+        exercise: exMap[exId],
+        ...pr,
+      })).filter(p => p.exercise).sort((a, b) => b.volume - a.volume);
+      setPrs(list);
+    });
+  }, []);
+
+  const getExName = (ex) => {
+    if (!ex) return '';
+    return i18n.language === 'en' && ex.nameEN ? ex.nameEN : ex.name;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Max weight chart */}
+      <div>
+        <h3 className="font-semibold mb-2">{t('profile.maxWeight')}</h3>
+        <select
+          value={selectedExercise}
+          onChange={e => setSelectedExercise(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm mb-2"
+        >
+          {exercises.map(ex => (
+            <option key={ex.id} value={ex.id}>{getExName(ex)}</option>
+          ))}
+        </select>
+        {maxWeightData.length > 1 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={maxWeightData}>
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey="weight" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-text-secondary text-center py-4">{t('profile.noData')}</p>
+        )}
+      </div>
+
+      {/* Frequency chart */}
+      <div>
+        <h3 className="font-semibold mb-2">{t('profile.frequency')}</h3>
+        {frequencyData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={frequencyData}>
+              <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-text-secondary text-center py-4">{t('profile.noData')}</p>
+        )}
+      </div>
+
+      {/* PRs */}
+      <div>
+        <h3 className="font-semibold mb-2">{t('profile.personalRecords')}</h3>
+        {prs.length === 0 ? (
+          <p className="text-sm text-text-secondary">{t('profile.noPRs')}</p>
+        ) : (
+          <div className="space-y-2">
+            {prs.slice(0, 10).map((pr, i) => (
+              <div key={i} className="flex justify-between items-center bg-bg rounded-lg px-3 py-2">
+                <span className="text-sm font-medium">{getExName(pr.exercise)}</span>
+                <span className="text-sm text-primary font-semibold">{pr.weight}kg × {pr.reps}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MeasurementsSection() {
+  const { t, i18n } = useTranslation();
+  const [measurements, setMeasurements] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' });
+
+  const loadMeasurements = async () => {
+    const all = await db.bodyMeasurements.orderBy('date').reverse().toArray();
+    setMeasurements(all);
+  };
+
+  useEffect(() => { loadMeasurements(); }, []);
+
+  const handleSave = async () => {
+    await db.bodyMeasurements.add({
+      id: uuidv4(),
+      date: Date.now(),
+      weight: form.weight ? Number(form.weight) : null,
+      chest: form.chest ? Number(form.chest) : null,
+      waist: form.waist ? Number(form.waist) : null,
+      hips: form.hips ? Number(form.hips) : null,
+      biceps: form.biceps ? Number(form.biceps) : null,
+      thigh: form.thigh ? Number(form.thigh) : null,
+      calf: form.calf ? Number(form.calf) : null,
+    });
+    setForm({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' });
+    setShowForm(false);
+    loadMeasurements();
+  };
+
+  const weightData = measurements
+    .filter(m => m.weight != null)
+    .sort((a, b) => a.date - b.date)
+    .map(m => ({
+      date: new Date(m.date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric' }),
+      weight: m.weight,
+    }));
+
+  const fields = ['weight', 'chest', 'waist', 'hips', 'biceps', 'thigh', 'calf'];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="font-semibold">{t('profile.measurements')}</h3>
+        <button onClick={() => setShowForm(!showForm)} className="text-primary text-sm font-medium">
+          + {t('profile.addMeasurement')}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-bg rounded-xl p-4 space-y-2">
+          {fields.map(f => (
+            <input
+              key={f}
+              type="number"
+              inputMode="decimal"
+              placeholder={t(`profile.${f === 'weight' ? 'bodyWeight' : f}`)}
+              value={form[f]}
+              onChange={e => setForm({ ...form, [f]: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+            />
+          ))}
+          <button onClick={handleSave} className="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">
+            {t('common.save')}
+          </button>
+        </div>
+      )}
+
+      {/* Weight evolution chart */}
+      {weightData.length > 1 && (
+        <div>
+          <h4 className="text-sm font-medium mb-2">{t('profile.weightEvolution')}</h4>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={weightData}>
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
+              <Tooltip />
+              <Line type="monotone" dataKey="weight" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Measurements history */}
+      {measurements.length === 0 ? (
+        <p className="text-sm text-text-secondary">{t('profile.noMeasurements')}</p>
+      ) : (
+        <div className="space-y-2">
+          {measurements.slice(0, 10).map(m => (
+            <div key={m.id} className="bg-bg rounded-lg px-3 py-2">
+              <p className="text-xs text-text-secondary mb-1">
+                {new Date(m.date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US')}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
+                {m.weight != null && <span>⚖️ {m.weight} kg</span>}
+                {m.chest != null && <span>{t('profile.chest').split(' ')[0]}: {m.chest} cm</span>}
+                {m.waist != null && <span>{t('profile.waist').split(' ')[0]}: {m.waist} cm</span>}
+                {m.hips != null && <span>{t('profile.hips').split(' ')[0]}: {m.hips} cm</span>}
+                {m.biceps != null && <span>{t('profile.biceps').split(' ')[0]}: {m.biceps} cm</span>}
+                {m.thigh != null && <span>{t('profile.thigh').split(' ')[0]}: {m.thigh} cm</span>}
+                {m.calf != null && <span>{t('profile.calf').split(' ')[0]}: {m.calf} cm</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsSection() {
+  const { t, i18n } = useTranslation();
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    db.userSettings.get('settings').then(s => {
+      if (s?.name) setName(s.name);
+      if (s?.language) i18n.changeLanguage(s.language);
+    });
+  }, []);
+
+  const handleNameChange = async (value) => {
+    setName(value);
+    await db.userSettings.update('settings', { name: value, updatedAt: Date.now() });
+  };
+
+  const handleLanguageChange = async (lang) => {
+    i18n.changeLanguage(lang);
+    await db.userSettings.update('settings', { language: lang, updatedAt: Date.now() });
+  };
+
+  const handleExport = async () => {
+    const data = {
+      exercises: await db.exercises.toArray(),
+      routines: await db.routines.toArray(),
+      weeklySchedule: await db.weeklySchedule.toArray(),
+      workouts: await db.workouts.toArray(),
+      bodyMeasurements: await db.bodyMeasurements.toArray(),
+      userSettings: await db.userSettings.toArray(),
+      exportedAt: Date.now(),
+      version: 1,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gymrat-notes-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async (mode) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (mode === 'replace') {
+          if (!window.confirm(t('profile.confirmReplace'))) return;
+          await db.exercises.clear();
+          await db.routines.clear();
+          await db.weeklySchedule.clear();
+          await db.workouts.clear();
+          await db.bodyMeasurements.clear();
+          await db.userSettings.clear();
+        }
+
+        if (data.exercises) await db.exercises.bulkPut(data.exercises);
+        if (data.routines) await db.routines.bulkPut(data.routines);
+        if (data.weeklySchedule) await db.weeklySchedule.bulkPut(data.weeklySchedule);
+        if (data.workouts) await db.workouts.bulkPut(data.workouts);
+        if (data.bodyMeasurements) await db.bodyMeasurements.bulkPut(data.bodyMeasurements);
+        if (data.userSettings) await db.userSettings.bulkPut(data.userSettings);
+
+        window.location.reload();
+      } catch {
+        alert('Invalid file');
+      }
+    };
+    input.click();
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Name */}
+      <div>
+        <label className="text-sm font-medium block mb-1">{t('profile.name')}</label>
+        <input
+          type="text"
+          value={name}
+          onChange={e => handleNameChange(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm"
+        />
+      </div>
+
+      {/* Language */}
+      <div>
+        <label className="text-sm font-medium block mb-1">{t('profile.language')}</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleLanguageChange('es')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium ${i18n.language === 'es' ? 'bg-primary text-white' : 'bg-surface border border-border'}`}
+          >
+            Español
+          </button>
+          <button
+            onClick={() => handleLanguageChange('en')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium ${i18n.language === 'en' ? 'bg-primary text-white' : 'bg-surface border border-border'}`}
+          >
+            English
+          </button>
+        </div>
+      </div>
+
+      {/* Data */}
+      <div>
+        <label className="text-sm font-medium block mb-2">{t('profile.data')}</label>
+        <div className="space-y-2">
+          <button onClick={handleExport} className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-medium">
+            {t('profile.exportData')}
+          </button>
+          <button onClick={() => handleImport('merge')} className="w-full py-2.5 bg-primary/80 text-white rounded-xl text-sm font-medium">
+            {t('profile.importMerge')}
+          </button>
+          <button onClick={() => handleImport('replace')} className="w-full py-2.5 border border-danger text-danger rounded-xl text-sm font-medium">
+            {t('profile.importReplace')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfilePage() {
+  const { t } = useTranslation();
+  const [tab, setTab] = useState('stats');
+
+  const tabs = [
+    { key: 'stats', label: t('profile.stats') },
+    { key: 'measurements', label: t('profile.measurements') },
+    { key: 'settings', label: t('profile.settings') },
+  ];
+
+  return (
+    <div className="p-4 max-w-lg mx-auto">
+      <h1 className="text-xl font-bold mb-4">{t('profile.title')}</h1>
+
+      <div className="flex gap-1 bg-surface backdrop-blur-sm rounded-xl p-1 mb-4 border border-border">
+        {tabs.map(tb => (
+          <button
+            key={tb.key}
+            onClick={() => setTab(tb.key)}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === tb.key ? 'bg-surface shadow-sm' : ''}`}
+          >
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'stats' && <StatsSection />}
+      {tab === 'measurements' && <MeasurementsSection />}
+      {tab === 'settings' && <SettingsSection />}
+    </div>
+  );
+}

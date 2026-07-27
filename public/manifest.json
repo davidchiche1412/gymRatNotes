@@ -1,0 +1,33 @@
+{
+  "name": "GymRat Notes",
+  "short_name": "GymRat",
+  "description": "Tu diario de entrenamiento",
+  "id": "/gymRatNotes/",
+  "start_url": "/gymRatNotes/",
+  "scope": "/gymRatNotes/",
+  "display": "standalone",
+  "background_color": "#111114",
+  "theme_color": "#f97316",
+  "orientation": "portrait",
+  "categories": ["fitness", "health"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

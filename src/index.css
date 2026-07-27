@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #f97316;
+  --color-primary-dark: #ea580c;
+  --color-primary-light: #fb923c;
+  --color-accent: #fdba74;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #22c55e;
+  --color-surface: rgba(28, 28, 32, 0.9);
+  --color-surface-alt: rgba(38, 38, 44, 0.9);
+  --color-bg: #111114;
+  --color-text: #f0f0f0;
+  --color-text-secondary: #8a8a9a;
+  --color-border: rgba(255, 255, 255, 0.08);
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+#root {
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+  background-color: var(--color-bg);
+}
+
+/* Hide scrollbar but keep scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Safe area for iPhone notch */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Input styling for dark theme */
+input[type="number"],
+input[type="text"],
+select,
+textarea {
+  color: var(--color-text);
+}
+
+input[type="number"]::placeholder,
+input[type="text"]::placeholder,
+textarea::placeholder {
+  color: var(--color-text-secondary);
+}
+
