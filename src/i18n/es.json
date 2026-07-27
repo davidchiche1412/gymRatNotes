@@ -52,6 +52,7 @@
     "edit": "Editar Rutina",
     "name": "Nombre de la rutina",
     "addExercise": "Añadir ejercicio",
+    "exercises": "ejercicios",
     "targetSets": "Series",
     "noRoutines": "No hay rutinas creadas",
     "delete": "Eliminar",
@@ -77,6 +78,11 @@
     "confirmDelete": "¿Eliminar este ejercicio?",
     "noResults": "No se encontraron ejercicios",
     "all": "Todos",
+    "createCustom": "Crear ejercicio",
+    "custom": "personalizado",
+    "exerciseName": "Nombre del ejercicio",
+    "muscleGroupLabel": "Grupo muscular",
+    "typeLabel": "Tipo de ejercicio",
     "types": {
       "weight": "Con peso",
       "bodyweight": "Peso corporal",
@@ -89,7 +95,10 @@
       "biceps": "Bíceps",
       "triceps": "Tríceps",
       "legs": "Piernas",
-      "core": "Core"
+      "glutes": "Glúteos",
+      "core": "Core",
+      "forearms": "Antebrazos",
+      "fullbody": "Full Body"
     },
     "movementTypes": {
       "push": "Empuje",

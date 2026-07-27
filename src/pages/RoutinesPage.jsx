@@ -391,18 +391,24 @@ export default function RoutinesPage() {
       ) : (
         <div className="space-y-3">
           {routines.map(r => (
-            <div key={r.id} className="bg-surface rounded-xl p-4 border border-border">
+            <div
+              key={r.id}
+              onClick={() => setEditing(r.id)}
+              className="bg-surface rounded-xl p-4 border border-border active:scale-[0.98] transition-transform cursor-pointer"
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-semibold">{r.name}</p>
                   <p className="text-xs text-text-secondary mt-0.5">
-                    {r.exercises.length} {t('routines.addExercise').toLowerCase()}s
+                    {r.exercises.length} {t('routines.exercises')}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setEditing(r.id)} className="text-primary text-xs font-medium">{t('common.edit')}</button>
-                  <button onClick={() => handleDelete(r.id)} className="text-danger/70 text-xs">{t('routines.delete')}</button>
-                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
+                  className="text-danger/70 text-xs p-1"
+                >
+                  {t('routines.delete')}
+                </button>
               </div>
             </div>
           ))}
