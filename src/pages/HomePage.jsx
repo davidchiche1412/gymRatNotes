@@ -143,6 +143,8 @@ export default function HomePage() {
     await db.workouts.put(finished);
     setWorkoutData(finished);
     setSaved(true);
+    // Permitir seguir editando tras guardar
+    setTimeout(() => setSaved(false), 2000);
   };
 
   const handleResetWorkout = async () => {
@@ -187,7 +189,6 @@ export default function HomePage() {
     (sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0
   ) || 0;
   const progress = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
-  const isFinished = workoutData?.finishedAt != null;
 
   if (loading) {
     return (
@@ -217,14 +218,12 @@ export default function HomePage() {
             <p className="text-xs text-text-secondary">{t(`days.${getTodayDow()}`)}</p>
             <h1 className="text-lg font-bold">{routine.name}</h1>
           </div>
-          {!isFinished && (
-            <button
+          <button
               onClick={handleResetWorkout}
               className="text-xs text-text-secondary px-2 py-1"
             >
               {t('today.resetWorkout')}
             </button>
-          )}
         </div>
         {/* Barra de progreso */}
         <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
@@ -295,12 +294,12 @@ export default function HomePage() {
                           placeholder="—"
                           value={set.weight ?? ''}
                           onChange={e => handleSetChange(exIdx, si, 'weight', e.target.value)}
-                          disabled={isFinished}
+                          
                           className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
                             set.completed
                               ? 'bg-primary/10 border-primary/20 text-primary'
                               : 'bg-bg border-border'
-                          } disabled:opacity-50`}
+                          }`}
                         />
                         <input
                           type="number"
@@ -308,12 +307,12 @@ export default function HomePage() {
                           placeholder="—"
                           value={set.reps ?? ''}
                           onChange={e => handleSetChange(exIdx, si, 'reps', e.target.value)}
-                          disabled={isFinished}
+                          
                           className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
                             set.completed
                               ? 'bg-primary/10 border-primary/20 text-primary'
                               : 'bg-bg border-border'
-                          } disabled:opacity-50`}
+                          }`}
                         />
                       </>
                     )}
@@ -324,23 +323,23 @@ export default function HomePage() {
                         placeholder="—"
                         value={set.duration ?? ''}
                         onChange={e => handleSetChange(exIdx, si, 'duration', e.target.value)}
-                        disabled={isFinished}
+                        
                         className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
                           set.completed
                             ? 'bg-primary/10 border-primary/20 text-primary'
                             : 'bg-bg border-border'
-                        } disabled:opacity-50`}
+                        }`}
                       />
                     )}
 
                     <button
                       onClick={() => handleToggleComplete(exIdx, si)}
-                      disabled={isFinished}
+                      
                       className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${
                         set.completed
                           ? 'bg-primary text-white'
                           : 'bg-bg border border-border text-text-secondary'
-                      } disabled:opacity-50 active:scale-95`}
+                      } active:scale-95`}
                     >
                       ✓
                     </button>
@@ -352,19 +351,13 @@ export default function HomePage() {
         })}
 
         {/* Botón guardar */}
-        {!isFinished ? (
-          <button
-            onClick={handleSaveWorkout}
-            disabled={completedSets === 0}
-            className="w-full mt-2 py-3.5 bg-primary text-white rounded-xl text-base font-semibold active:scale-[0.98] transition-transform disabled:opacity-40"
-          >
-            {t('today.saveWorkout')}
-          </button>
-        ) : (
-          <div className="text-center py-4">
-            <span className="text-primary font-semibold">{t('today.saved')}</span>
-          </div>
-        )}
+        <button
+          onClick={handleSaveWorkout}
+          disabled={completedSets === 0}
+          className="w-full mt-2 py-3.5 bg-primary text-white rounded-xl text-base font-semibold active:scale-[0.98] transition-transform disabled:opacity-40"
+        >
+          {saved ? '✓ ' + t('today.saved') : t('today.saveWorkout')}
+        </button>
       </div>
     </div>
   );
