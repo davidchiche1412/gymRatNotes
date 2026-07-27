@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { db } from '../db/database';
+import Modal from '../components/Modal';
+import { useModal } from '../hooks/useModal';
 
 function StatsSection() {
   const { t, i18n } = useTranslation();
@@ -272,6 +274,7 @@ function MeasurementsSection() {
 function SettingsSection() {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
+  const { modal, confirm, alert: showAlert } = useModal();
 
   useEffect(() => {
     db.userSettings.get('settings').then(s => {
@@ -322,7 +325,13 @@ function SettingsSection() {
         const data = JSON.parse(text);
 
         if (mode === 'replace') {
-          if (!window.confirm(t('profile.confirmReplace'))) return;
+          const ok = await confirm({
+            title: t('profile.importData'),
+            message: t('profile.confirmReplace'),
+            confirmText: t('common.confirm'),
+            cancelText: t('common.cancel'),
+          });
+          if (!ok) return;
           await db.exercises.clear();
           await db.routines.clear();
           await db.weeklySchedule.clear();
@@ -340,7 +349,7 @@ function SettingsSection() {
 
         window.location.reload();
       } catch {
-        alert('Invalid file');
+        await showAlert({ title: 'Error', message: t('profile.invalidFile'), confirmText: 'OK' });
       }
     };
     input.click();
@@ -393,6 +402,7 @@ function SettingsSection() {
           </button>
         </div>
       </div>
+      <Modal {...modal} />
     </div>
   );
 }

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/database';
+import Modal from '../components/Modal';
+import { useModal } from '../hooks/useModal';
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation();
   const [workouts, setWorkouts] = useState([]);
   const [exerciseMap, setExerciseMap] = useState({});
   const [expandedId, setExpandedId] = useState(null);
+  const { modal, confirm } = useModal();
 
   const loadWorkouts = async () => {
     const all = await db.workouts
@@ -28,7 +31,13 @@ export default function HistoryPage() {
   useEffect(() => { loadWorkouts(); }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm(t('history.confirmDelete'))) return;
+    const ok = await confirm({
+      title: t('history.deleteWorkout'),
+      message: t('history.confirmDelete'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+    });
+    if (!ok) return;
     await db.workouts.delete(id);
     loadWorkouts();
   };
@@ -116,6 +125,7 @@ export default function HistoryPage() {
           ))}
         </div>
       )}
+      <Modal {...modal} />
     </div>
   );
 }

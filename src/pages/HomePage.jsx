@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
+import Modal from '../components/Modal';
+import { useModal } from '../hooks/useModal';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)
 function getTodayDow() {
@@ -11,6 +13,7 @@ function getTodayDow() {
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
+  const { modal, confirm } = useModal();
   const [routine, setRoutine] = useState(null);
   const [exerciseInfoMap, setExerciseInfoMap] = useState({});
   const [workoutData, setWorkoutData] = useState(null); // { exercises: [{ exerciseId, sets: [...] }] }
@@ -148,7 +151,14 @@ export default function HomePage() {
   };
 
   const handleResetWorkout = async () => {
-    if (!workoutData || !window.confirm(t('today.confirmReset'))) return;
+    if (!workoutData) return;
+    const ok = await confirm({
+      title: t('today.resetWorkout'),
+      message: t('today.confirmReset'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+    });
+    if (!ok) return;
     await db.workouts.delete(workoutData.id);
     // Recrear workout limpio pre-rellenado
     const newWorkout = {
@@ -359,6 +369,8 @@ export default function HomePage() {
           {saved ? '✓ ' + t('today.saved') : t('today.saveWorkout')}
         </button>
       </div>
+
+      <Modal {...modal} />
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
 import ExerciseSelector from '../components/ExerciseSelector';
+import Modal from '../components/Modal';
+import { useModal } from '../hooks/useModal';
 
 function DraggableExerciseList({ exercises, exerciseInfoMap, getExName, onReorder, onUpdate, onRemove, t }) {
   const [dragIdx, setDragIdx] = useState(null);
@@ -317,7 +319,8 @@ function WeeklySchedule({ routines }) {
 export default function RoutinesPage() {
   const { t } = useTranslation();
   const [routines, setRoutines] = useState([]);
-  const [editing, setEditing] = useState(null); // null | 'new' | routineId
+  const [editing, setEditing] = useState(null);
+  const { modal, confirm } = useModal();
 
   const loadRoutines = async () => {
     const all = await db.routines.toArray();
@@ -342,7 +345,13 @@ export default function RoutinesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(t('routines.confirmDelete'))) return;
+    const ok = await confirm({
+      title: t('routines.deleteRoutine'),
+      message: t('routines.confirmDelete'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+    });
+    if (!ok) return;
     await db.routines.delete(id);
     // Also remove from weekly schedule
     const schedules = await db.weeklySchedule.where('routineId').equals(id).toArray();
@@ -401,6 +410,7 @@ export default function RoutinesPage() {
       )}
 
       <WeeklySchedule routines={routines} />
+      <Modal {...modal} />
     </div>
   );
 }
