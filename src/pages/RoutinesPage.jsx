@@ -107,8 +107,8 @@ function DraggableExerciseList({ exercises, exerciseInfoMap, getExName, onReorde
               <button onClick={() => onRemove(i)} className="text-danger/70 text-sm ml-1">✕</button>
             </div>
 
-            {/* Series, peso y reps */}
-            <div className="flex items-center gap-2 mt-2">
+            {/* Series, peso, reps y descanso */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               <div className="flex flex-col items-center">
                 <span className="text-[10px] text-text-secondary mb-0.5">{t('routines.targetSets')}</span>
                 <input
@@ -159,6 +159,18 @@ function DraggableExerciseList({ exercises, exerciseInfoMap, getExName, onReorde
                   />
                 </div>
               )}
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] text-text-secondary mb-0.5">{t('routines.restTime')}</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="60"
+                  value={ex.restTime ?? ''}
+                  onChange={e => onUpdate(i, 'restTime', e.target.value === '' ? null : Number(e.target.value))}
+                  className="w-14 text-center px-1 py-1.5 rounded-lg border border-border bg-bg text-sm"
+                  min={0}
+                />
+              </div>
             </div>
           </div>
         );

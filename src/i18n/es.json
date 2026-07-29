@@ -61,7 +61,8 @@
     "save": "Guardar",
     "weeklySchedule": "Programación Semanal",
     "assignRoutine": "Asignar rutina",
-    "noRoutineAssigned": "Sin rutina"
+    "noRoutineAssigned": "Sin rutina",
+    "restTime": "Desc.(s)"
   },
   "exercises": {
     "title": "Ejercicios",
@@ -148,6 +149,11 @@
     "4": "Viernes",
     "5": "Sábado",
     "6": "Domingo"
+  },
+  "timer": {
+    "resting": "Descansando...",
+    "ready": "¡Listo!",
+    "tapToDismiss": "Toca ✕ para cerrar"
   },
   "common": {
     "save": "Guardar",

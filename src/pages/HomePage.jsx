@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
 import Modal from '../components/Modal';
+import RestTimer from '../components/RestTimer';
 import { useModal } from '../hooks/useModal';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)
@@ -20,6 +21,8 @@ export default function HomePage() {
   const [previousDataMap, setPreviousDataMap] = useState({});
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [timerSeconds, setTimerSeconds] = useState(null);
+  const [timerKey, setTimerKey] = useState(0);
 
   const getExName = useCallback((ex) => {
     if (!ex) return '';
@@ -135,9 +138,18 @@ export default function HomePage() {
     if (!workoutData) return;
     const exercises = [...workoutData.exercises];
     const sets = [...exercises[exIdx].sets];
-    sets[setIdx] = { ...sets[setIdx], completed: !sets[setIdx].completed };
+    const wasCompleted = sets[setIdx].completed;
+    sets[setIdx] = { ...sets[setIdx], completed: !wasCompleted };
     exercises[exIdx] = { ...exercises[exIdx], sets };
     updateWorkout({ ...workoutData, exercises });
+
+    // Iniciar timer al marcar como completada
+    if (!wasCompleted && routine) {
+      const routineEx = routine.exercises[exIdx];
+      const restTime = routineEx?.restTime || 60;
+      setTimerSeconds(restTime);
+      setTimerKey(k => k + 1);
+    }
   };
 
   const handleSaveWorkout = async () => {
@@ -369,6 +381,14 @@ export default function HomePage() {
           {saved ? '✓ ' + t('today.saved') : t('today.saveWorkout')}
         </button>
       </div>
+
+      {timerSeconds !== null && (
+        <RestTimer
+          key={timerKey}
+          seconds={timerSeconds}
+          onDismiss={() => setTimerSeconds(null)}
+        />
+      )}
 
       <Modal {...modal} />
     </div>

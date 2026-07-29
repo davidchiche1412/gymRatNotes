@@ -61,7 +61,8 @@
     "save": "Save",
     "weeklySchedule": "Weekly Schedule",
     "assignRoutine": "Assign routine",
-    "noRoutineAssigned": "No routine"
+    "noRoutineAssigned": "No routine",
+    "restTime": "Rest(s)"
   },
   "exercises": {
     "title": "Exercises",
@@ -148,6 +149,11 @@
     "4": "Friday",
     "5": "Saturday",
     "6": "Sunday"
+  },
+  "timer": {
+    "resting": "Resting...",
+    "ready": "Ready!",
+    "tapToDismiss": "Tap ✕ to dismiss"
   },
   "common": {
     "save": "Save",
