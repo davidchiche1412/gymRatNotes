@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gymrat-notes-v5';
+const CACHE_NAME = 'gymrat-notes-v6';
 const BASE = '/gymRatNotes/';
 
 self.addEventListener('install', (event) => {
@@ -42,36 +42,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets con hash (JS/CSS del build): cache-first
-  if (event.request.url.match(/\/assets\/.*\.(js|css)$/)) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
-
-  // Resto: stale-while-revalidate
+  // Todo lo demás: network-first con fallback a cache
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

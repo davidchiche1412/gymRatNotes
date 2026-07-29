@@ -344,16 +344,28 @@ export default function RoutinesPage() {
 
   useEffect(() => { loadRoutines(); }, []);
 
-  const handleSave = async ({ name, exercises }) => {
+  // Manejo del botón atrás para salir del editor
+  useEffect(() => {
+    if (!editing) return;
+    window.history.pushState({ editing: true }, '');
+    const handlePopState = () => {
+      setEditing(null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [editing]);
+
+  const handleSave = async ({ name, exercises, restTime }) => {
     if (editing === 'new') {
       await db.routines.add({
         id: uuidv4(),
         name,
         exercises,
+        restTime,
         updatedAt: Date.now(),
       });
     } else {
-      await db.routines.update(editing, { name, exercises, updatedAt: Date.now() });
+      await db.routines.update(editing, { name, exercises, restTime, updatedAt: Date.now() });
     }
     setEditing(null);
     loadRoutines();
