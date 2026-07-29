@@ -23,6 +23,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [timerSeconds, setTimerSeconds] = useState(null);
   const [timerKey, setTimerKey] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
   const getExName = useCallback((ex) => {
     if (!ex) return '';
@@ -115,6 +116,10 @@ export default function HomePage() {
         await db.workouts.add(newWorkout);
         setWorkoutData(newWorkout);
       }
+      // Cargar preferencia de sonido
+      const settings = await db.userSettings.get('settings');
+      if (settings?.restSound) setSoundEnabled(true);
+
       setLoading(false);
     };
     load();
@@ -387,7 +392,7 @@ export default function HomePage() {
         <RestTimer
           key={timerKey}
           seconds={timerSeconds}
-          soundEnabled={routine?.restSound ?? false}
+          soundEnabled={soundEnabled}
           onDismiss={() => setTimerSeconds(null)}
         />
       )}
