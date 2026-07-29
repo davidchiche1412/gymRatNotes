@@ -62,7 +62,6 @@ export default function RestTimer({ seconds, onDismiss }) {
           <p className={`text-sm font-semibold ${isFinished ? 'text-green-500' : ''}`}>
             {isFinished ? t('timer.ready') : t('timer.resting')}
           </p>
-          <p className="text-[11px] text-text-secondary">{t('timer.tapToDismiss')}</p>
         </div>
 
         <button
