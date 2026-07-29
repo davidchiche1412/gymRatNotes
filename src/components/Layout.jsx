@@ -34,9 +34,15 @@ export default function Layout() {
   useEffect(() => {
     const handleTouchStart = (e) => {
       // Ignorar si el touch empieza en un input interactivo (sliders, etc)
-      const tag = e.target.tagName;
-      const type = e.target.type;
-      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || type === 'range') {
+      const el = e.target;
+      const tag = el.tagName;
+      const type = el.type;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || type === 'range' || el.closest('input[type="range"]')) {
+        touchRef.current.startX = null;
+        return;
+      }
+      // Ignorar si hay un slider activo recientemente
+      if (touchRef.current.sliderCooldown) {
         touchRef.current.startX = null;
         return;
       }
@@ -59,11 +65,26 @@ export default function Layout() {
         navigate(navItems[currentIdx - 1].path);
       }
     };
+    // Cooldown: bloquear swipe 500ms después de tocar un slider
+    const handleInputStart = (e) => {
+      if (e.target.type === 'range' || e.target.tagName === 'INPUT') {
+        touchRef.current.sliderCooldown = true;
+      }
+    };
+    const handleInputEnd = (e) => {
+      if (e.target.type === 'range' || e.target.tagName === 'INPUT') {
+        setTimeout(() => { touchRef.current.sliderCooldown = false; }, 500);
+      }
+    };
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
     document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    document.addEventListener('pointerdown', handleInputStart, { passive: true });
+    document.addEventListener('pointerup', handleInputEnd, { passive: true });
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('pointerdown', handleInputStart);
+      document.removeEventListener('pointerup', handleInputEnd);
     };
   }, [location.pathname, navigate]);
 
