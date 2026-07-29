@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
 import Modal from '../components/Modal';
-import RestTimer from '../components/RestTimer';
 import { useModal } from '../hooks/useModal';
+import { useTimer } from '../context/TimerContext';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)
 function getTodayDow() {
@@ -15,15 +15,13 @@ function getTodayDow() {
 export default function HomePage() {
   const { t, i18n } = useTranslation();
   const { modal, confirm } = useModal();
+  const { startTimer } = useTimer();
   const [routine, setRoutine] = useState(null);
   const [exerciseInfoMap, setExerciseInfoMap] = useState({});
   const [workoutData, setWorkoutData] = useState(null); // { exercises: [{ exerciseId, sets: [...] }] }
   const [previousDataMap, setPreviousDataMap] = useState({});
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [timerSeconds, setTimerSeconds] = useState(null);
-  const [timerKey, setTimerKey] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(false);
 
   const getExName = useCallback((ex) => {
     if (!ex) return '';
@@ -116,10 +114,6 @@ export default function HomePage() {
         await db.workouts.add(newWorkout);
         setWorkoutData(newWorkout);
       }
-      // Cargar preferencia de sonido
-      const settings = await db.userSettings.get('settings');
-      if (settings?.restSound) setSoundEnabled(true);
-
       setLoading(false);
     };
     load();
@@ -151,10 +145,7 @@ export default function HomePage() {
     // Iniciar timer al marcar como completada
     if (!wasCompleted && routine) {
       const restTime = routine.restTime ?? 60;
-      if (restTime > 0) {
-        setTimerSeconds(restTime);
-        setTimerKey(k => k + 1);
-      }
+      startTimer(restTime);
     }
   };
 
@@ -387,15 +378,6 @@ export default function HomePage() {
           {saved ? '✓ ' + t('today.saved') : t('today.saveWorkout')}
         </button>
       </div>
-
-      {timerSeconds !== null && (
-        <RestTimer
-          key={timerKey}
-          seconds={timerSeconds}
-          soundEnabled={soundEnabled}
-          onDismiss={() => setTimerSeconds(null)}
-        />
-      )}
 
       <Modal {...modal} />
     </div>

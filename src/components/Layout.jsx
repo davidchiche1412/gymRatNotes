@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useTimer } from '../context/TimerContext';
+import RestTimer from './RestTimer';
 
 const navItems = [
   { path: '/', key: 'today', icon: '🏋️' },
@@ -11,6 +13,7 @@ const navItems = [
 
 export default function Layout() {
   const { t } = useTranslation();
+  const { timerSeconds, timerKey, soundEnabled, dismissTimer } = useTimer();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -67,6 +70,14 @@ export default function Layout() {
           ))}
         </div>
       </nav>
+      {timerSeconds !== null && (
+        <RestTimer
+          key={timerKey}
+          seconds={timerSeconds}
+          soundEnabled={soundEnabled}
+          onDismiss={dismissTimer}
+        />
+      )}
     </div>
   );
 }
