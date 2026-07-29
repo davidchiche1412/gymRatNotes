@@ -436,6 +436,8 @@ function SettingsSection() {
                 const s = await db.userSettings.get('settings') || { id: 'settings' };
                 await db.userSettings.put({ ...s, restVolume: v });
               }}
+              onMouseUp={() => { if (restSoundType !== 'none') playSound(restSoundType, volume); }}
+              onTouchEnd={() => { if (restSoundType !== 'none') playSound(restSoundType, volume); }}
               className="flex-1 h-2 rounded-full appearance-none bg-border accent-primary"
             />
             <span className="text-xs text-text-secondary">🔊</span>
