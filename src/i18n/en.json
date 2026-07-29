@@ -16,7 +16,8 @@
     "tapToComplete": "Tap ✓ to complete with previous data",
     "allDone": "Workout completed!",
     "saveWorkout": "Save Workout",
-    "saved": "Workout saved ✓",
+    "saved": "Saved",
+    "autoSaved": "Auto-saved",
     "resetWorkout": "Reset",
     "confirmReset": "Reset the workout? Today's data will be cleared."
   },
@@ -119,6 +120,7 @@
     "data": "Data",
     "language": "Language",
     "timerSound": "Timer sound",
+    "restTimer": "Rest between sets",
     "soundNone": "No sound",
     "soundBell": "Bell",
     "exportData": "Export data",
@@ -139,7 +141,7 @@
     "bodyWeight": "Body weight (kg)",
     "chest": "Chest (cm)",
     "waist": "Waist (cm)",
-    "hips": "Hips (cm)",
+    "glutes": "Glutes (cm)",
     "biceps": "Biceps (cm)",
     "thigh": "Thigh (cm)",
     "calf": "Calf (cm)",
@@ -147,7 +149,10 @@
     "weightEvolution": "Body Weight Evolution",
     "deleteMeasurement": "Delete measurement",
     "confirmDeleteMeasurement": "Delete this measurement?",
-    "measurementCount": "measurements"
+    "measurementCount": "measurements",
+    "editFields": "Edit fields",
+    "editFieldsDescription": "Add or remove measurement zones",
+    "newFieldName": "Field name"
   },
   "days": {
     "0": "Monday",

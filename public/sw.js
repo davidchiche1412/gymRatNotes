@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gymrat-notes-v8';
+const CACHE_NAME = 'gymrat-notes-v9';
 const BASE = '/gymRatNotes/';
 
 self.addEventListener('install', (event) => {

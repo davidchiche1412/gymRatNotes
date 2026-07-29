@@ -16,7 +16,8 @@
     "tapToComplete": "Toca ✓ para completar con los datos anteriores",
     "allDone": "¡Entrenamiento completado!",
     "saveWorkout": "Guardar Entrenamiento",
-    "saved": "Entrenamiento guardado ✓",
+    "saved": "Guardado",
+    "autoSaved": "Guardado automáticamente",
     "resetWorkout": "Reiniciar",
     "confirmReset": "¿Reiniciar el entrenamiento? Se borrarán los datos de hoy."
   },
@@ -119,6 +120,7 @@
     "data": "Datos",
     "language": "Idioma",
     "timerSound": "Sonido del temporizador",
+    "restTimer": "Descanso entre series",
     "soundNone": "Sin sonido",
     "soundBell": "Campana",
     "exportData": "Exportar datos",
@@ -139,7 +141,7 @@
     "bodyWeight": "Peso corporal (kg)",
     "chest": "Pecho (cm)",
     "waist": "Cintura (cm)",
-    "hips": "Cadera (cm)",
+    "glutes": "Glúteo (cm)",
     "biceps": "Bíceps (cm)",
     "thigh": "Muslo (cm)",
     "calf": "Gemelo (cm)",
@@ -147,7 +149,10 @@
     "weightEvolution": "Evolución del Peso Corporal",
     "deleteMeasurement": "Eliminar medida",
     "confirmDeleteMeasurement": "¿Eliminar esta medida?",
-    "measurementCount": "medidas"
+    "measurementCount": "medidas",
+    "editFields": "Editar campos",
+    "editFieldsDescription": "Añade o quita zonas de medición",
+    "newFieldName": "Nombre del campo"
   },
   "days": {
     "0": "Lunes",

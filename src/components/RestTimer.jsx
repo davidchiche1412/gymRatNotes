@@ -137,6 +137,13 @@ export default function RestTimer({ seconds, soundType = 'none', volume = 0.7, o
     return () => clearInterval(interval);
   }, [seconds]);
 
+  // Auto-dismiss 3s después de acabar
+  useEffect(() => {
+    if (remaining !== 0) return;
+    const timeout = setTimeout(() => onDismiss(), 3000);
+    return () => clearTimeout(timeout);
+  }, [remaining, onDismiss]);
+
   const progress = remaining / totalRef.current;
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;

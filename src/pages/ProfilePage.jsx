@@ -162,39 +162,83 @@ function StatsSection() {
   );
 }
 
+const DEFAULT_MEASUREMENT_FIELDS = [
+  { key: 'weight', label: 'bodyWeight', unit: 'kg' },
+  { key: 'chest', label: 'chest', unit: 'cm' },
+  { key: 'waist', label: 'waist', unit: 'cm' },
+  { key: 'glutes', label: 'glutes', unit: 'cm' },
+  { key: 'biceps', label: 'biceps', unit: 'cm' },
+  { key: 'thigh', label: 'thigh', unit: 'cm' },
+  { key: 'calf', label: 'calf', unit: 'cm' },
+];
+
 function MeasurementsSection() {
   const { t, i18n } = useTranslation();
   const [measurements, setMeasurements] = useState([]);
+  const [fields, setFields] = useState(DEFAULT_MEASUREMENT_FIELDS);
   const [showForm, setShowForm] = useState(false);
+  const [showFieldEditor, setShowFieldEditor] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [form, setForm] = useState({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' });
+  const [form, setForm] = useState({});
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldUnit, setNewFieldUnit] = useState('cm');
   const { modal, confirm } = useModal();
 
   const locale = i18n.language === 'es' ? 'es-ES' : 'en-US';
-  const fields = ['weight', 'chest', 'waist', 'hips', 'biceps', 'thigh', 'calf'];
 
   const loadMeasurements = async () => {
     const all = await db.bodyMeasurements.orderBy('date').reverse().toArray();
     setMeasurements(all);
   };
 
-  useEffect(() => { loadMeasurements(); }, []);
+  useEffect(() => {
+    loadMeasurements();
+    db.userSettings.get('settings').then(s => {
+      if (s?.measurementFields) setFields(s.measurementFields);
+    });
+  }, []);
+
+  const saveFields = async (newFields) => {
+    setFields(newFields);
+    const s = await db.userSettings.get('settings') || { id: 'settings' };
+    await db.userSettings.put({ ...s, measurementFields: newFields });
+  };
+
+  const handleAddField = () => {
+    if (!newFieldName.trim()) return;
+    const key = newFieldName.trim().toLowerCase().replace(/\s+/g, '_');
+    if (fields.some(f => f.key === key)) return;
+    const newFields = [...fields, { key, label: newFieldName.trim(), unit: newFieldUnit, isCustom: true }];
+    saveFields(newFields);
+    setNewFieldName('');
+    setNewFieldUnit('cm');
+  };
+
+  const handleRemoveField = (key) => {
+    const newFields = fields.filter(f => f.key !== key);
+    saveFields(newFields);
+  };
+
+  const getFieldLabel = (field) => {
+    if (field.isCustom) return field.label;
+    const translated = t(`profile.${field.label}`);
+    return translated.replace(/ \(.*/, '');
+  };
+
+  const getFieldPlaceholder = (field) => {
+    if (field.isCustom) return `${field.label} (${field.unit})`;
+    return t(`profile.${field.label}`);
+  };
 
   const handleSave = async () => {
-    const hasData = fields.some(f => form[f] !== '');
+    const hasData = fields.some(f => form[f.key] && form[f.key] !== '');
     if (!hasData) return;
-    await db.bodyMeasurements.add({
-      id: uuidv4(),
-      date: Date.now(),
-      weight: form.weight ? Number(form.weight) : null,
-      chest: form.chest ? Number(form.chest) : null,
-      waist: form.waist ? Number(form.waist) : null,
-      hips: form.hips ? Number(form.hips) : null,
-      biceps: form.biceps ? Number(form.biceps) : null,
-      thigh: form.thigh ? Number(form.thigh) : null,
-      calf: form.calf ? Number(form.calf) : null,
+    const entry = { id: uuidv4(), date: Date.now() };
+    fields.forEach(f => {
+      entry[f.key] = form[f.key] ? Number(form[f.key]) : null;
     });
-    setForm({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' });
+    await db.bodyMeasurements.add(entry);
+    setForm({});
     setShowForm(false);
     loadMeasurements();
   };
@@ -218,12 +262,11 @@ function MeasurementsSection() {
     });
   };
 
-  // Resumen corto para la tarjeta cerrada
   const getSummary = (m) => {
     const parts = [];
     if (m.weight != null) parts.push(`${m.weight} kg`);
-    const bodyParts = ['chest', 'waist', 'hips', 'biceps', 'thigh', 'calf'].filter(f => m[f] != null);
-    if (bodyParts.length > 0) parts.push(`${bodyParts.length} ${t('profile.measurementCount')}`);
+    const filled = fields.filter(f => f.key !== 'weight' && m[f.key] != null);
+    if (filled.length > 0) parts.push(`${filled.length} ${t('profile.measurementCount')}`);
     return parts.join(' · ');
   };
 
@@ -237,41 +280,96 @@ function MeasurementsSection() {
 
   return (
     <div className="space-y-4">
-      {/* Header con botón añadir */}
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex justify-between items-center gap-2">
         <h3 className="font-semibold">{t('profile.measurements')}</h3>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-medium"
-        >
-          + {t('profile.addMeasurement')}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowFieldEditor(!showFieldEditor)}
+            className="px-2 py-2 text-text-secondary rounded-xl text-xs"
+            title={t('profile.editFields')}
+          >
+            ⚙️
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-medium"
+          >
+            + {t('profile.addMeasurement')}
+          </button>
+        </div>
       </div>
+
+      {/* Editor de campos */}
+      {showFieldEditor && (
+        <div className="bg-surface rounded-xl p-4 border border-border space-y-3">
+          <p className="text-xs text-text-secondary">{t('profile.editFieldsDescription')}</p>
+          <div className="space-y-1">
+            {fields.map(f => (
+              <div key={f.key} className="flex items-center justify-between bg-bg rounded-lg px-3 py-2">
+                <span className="text-sm">{getFieldLabel(f)} ({f.unit})</span>
+                <button
+                  onClick={() => handleRemoveField(f.key)}
+                  className="text-danger/70 text-xs px-2"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder={t('profile.newFieldName')}
+              value={newFieldName}
+              onChange={e => setNewFieldName(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-lg border border-border bg-bg text-sm"
+            />
+            <select
+              value={newFieldUnit}
+              onChange={e => setNewFieldUnit(e.target.value)}
+              className="px-2 py-2 rounded-lg border border-border bg-bg text-sm"
+            >
+              <option value="cm">cm</option>
+              <option value="kg">kg</option>
+              <option value="mm">mm</option>
+              <option value="%">%</option>
+            </select>
+            <button
+              onClick={handleAddField}
+              disabled={!newFieldName.trim()}
+              className="px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-40"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Formulario */}
       {showForm && (
         <div className="bg-surface rounded-xl p-4 border border-border space-y-2">
           {fields.map(f => (
             <input
-              key={f}
+              key={f.key}
               type="number"
               inputMode="decimal"
-              placeholder={t(`profile.${f === 'weight' ? 'bodyWeight' : f}`)}
-              value={form[f]}
-              onChange={e => setForm({ ...form, [f]: e.target.value })}
+              placeholder={getFieldPlaceholder(f)}
+              value={form[f.key] || ''}
+              onChange={e => setForm({ ...form, [f.key]: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm"
             />
           ))}
           <div className="flex gap-2 pt-1">
             <button
-              onClick={() => { setShowForm(false); setForm({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' }); }}
+              onClick={() => { setShowForm(false); setForm({}); }}
               className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-text-secondary"
             >
               {t('common.cancel')}
             </button>
             <button
               onClick={handleSave}
-              disabled={!fields.some(f => form[f] !== '')}
+              disabled={!fields.some(f => form[f.key] && form[f.key] !== '')}
               className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40"
             >
               {t('common.save')}
@@ -295,7 +393,7 @@ function MeasurementsSection() {
         </div>
       )}
 
-      {/* Lista de medidas (estilo historial) */}
+      {/* Lista de medidas */}
       {measurements.length === 0 ? (
         <p className="text-center text-text-secondary py-12 text-sm">
           {t('profile.noMeasurements')}
@@ -323,48 +421,15 @@ function MeasurementsSection() {
               {expandedId === m.id && (
                 <div className="px-3 pb-3 border-t border-border pt-2">
                   <div className="space-y-1">
-                    {m.weight != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.bodyWeight').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.weight} kg</span>
-                      </div>
-                    )}
-                    {m.chest != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.chest').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.chest} cm</span>
-                      </div>
-                    )}
-                    {m.waist != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.waist').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.waist} cm</span>
-                      </div>
-                    )}
-                    {m.hips != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.hips').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.hips} cm</span>
-                      </div>
-                    )}
-                    {m.biceps != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.biceps').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.biceps} cm</span>
-                      </div>
-                    )}
-                    {m.thigh != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.thigh').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.thigh} cm</span>
-                      </div>
-                    )}
-                    {m.calf != null && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">{t('profile.calf').replace(/ \(.*/, '')}</span>
-                        <span className="font-medium">{m.calf} cm</span>
-                      </div>
-                    )}
+                    {fields.map(f => {
+                      if (m[f.key] == null) return null;
+                      return (
+                        <div key={f.key} className="flex justify-between text-sm">
+                          <span className="text-text-secondary">{getFieldLabel(f)}</span>
+                          <span className="font-medium">{m[f.key]} {f.unit}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <button
                     onClick={() => handleDelete(m.id)}
@@ -386,6 +451,7 @@ function MeasurementsSection() {
 function SettingsSection() {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
+  const [restEnabled, setRestEnabled] = useState(true);
   const [restSoundType, setRestSoundType] = useState('ding');
   const [volume, setVolume] = useState(0.7);
   const { modal, confirm, alert: showAlert } = useModal();
@@ -394,6 +460,7 @@ function SettingsSection() {
     db.userSettings.get('settings').then(s => {
       if (s?.name) setName(s.name);
       if (s?.language) i18n.changeLanguage(s.language);
+      if (s?.restEnabled !== undefined) setRestEnabled(s.restEnabled);
       if (s?.restSoundType !== undefined) setRestSoundType(s.restSoundType);
       if (s?.restVolume !== undefined) setVolume(s.restVolume);
     });
@@ -503,56 +570,75 @@ function SettingsSection() {
         </div>
       </div>
 
-      {/* Sonido del timer */}
+      {/* Descanso entre series */}
       <div>
-        <label className="text-sm font-medium block mb-2">{t('profile.timerSound')}</label>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { key: 'none', label: t('profile.soundNone'), icon: '🔕' },
-            { key: 'ding', label: 'Ding', icon: '🔔' },
-            { key: 'bell', label: t('profile.soundBell'), icon: '🥊' },
-            { key: 'beep', label: 'Beep', icon: '📟' },
-          ].map(opt => (
-            <button
-              key={opt.key}
-              onClick={async () => {
-                setRestSoundType(opt.key);
-                const s = await db.userSettings.get('settings') || { id: 'settings' };
-                await db.userSettings.put({ ...s, restSoundType: opt.key });
-                playSound(opt.key, volume);
-              }}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                restSoundType === opt.key
-                  ? 'bg-primary text-white'
-                  : 'bg-surface border border-border'
-              }`}
-            >
-              <span>{opt.icon}</span>
-              <span>{opt.label}</span>
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-medium">{t('profile.restTimer')}</label>
+          <button
+            onClick={async () => {
+              const newVal = !restEnabled;
+              setRestEnabled(newVal);
+              const s = await db.userSettings.get('settings') || { id: 'settings' };
+              await db.userSettings.put({ ...s, restEnabled: newVal });
+            }}
+            className={`relative w-11 h-6 rounded-full transition-colors ${restEnabled ? 'bg-primary' : 'bg-border'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${restEnabled ? 'translate-x-5' : ''}`} />
+          </button>
         </div>
-        {restSoundType !== 'none' && (
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-xs text-text-secondary">🔈</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={async (e) => {
-                const v = parseFloat(e.target.value);
-                setVolume(v);
-                const s = await db.userSettings.get('settings') || { id: 'settings' };
-                await db.userSettings.put({ ...s, restVolume: v });
-              }}
-              onMouseUp={() => { if (restSoundType !== 'none') playSound(restSoundType, volume); }}
-              onTouchEnd={() => { if (restSoundType !== 'none') playSound(restSoundType, volume); }}
-              className="flex-1 h-2 rounded-full appearance-none bg-border accent-primary"
-            />
-            <span className="text-xs text-text-secondary">🔊</span>
-          </div>
+
+        {restEnabled && (
+          <>
+            <label className="text-sm font-medium block mb-2">{t('profile.timerSound')}</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: 'none', label: t('profile.soundNone'), icon: '🔕' },
+                { key: 'ding', label: 'Ding', icon: '🔔' },
+                { key: 'bell', label: t('profile.soundBell'), icon: '🥊' },
+                { key: 'beep', label: 'Beep', icon: '📟' },
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={async () => {
+                    setRestSoundType(opt.key);
+                    const s = await db.userSettings.get('settings') || { id: 'settings' };
+                    await db.userSettings.put({ ...s, restSoundType: opt.key });
+                    playSound(opt.key, volume);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    restSoundType === opt.key
+                      ? 'bg-primary text-white'
+                      : 'bg-surface border border-border'
+                  }`}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+            {restSoundType !== 'none' && (
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-xs text-text-secondary">🔈</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={async (e) => {
+                    const v = parseFloat(e.target.value);
+                    setVolume(v);
+                    const s = await db.userSettings.get('settings') || { id: 'settings' };
+                    await db.userSettings.put({ ...s, restVolume: v });
+                  }}
+                  onMouseUp={() => { if (restSoundType !== 'none') playSound(restSoundType, volume); }}
+                  onTouchEnd={() => { if (restSoundType !== 'none') playSound(restSoundType, volume); }}
+                  className="flex-1 h-2 rounded-full appearance-none bg-border accent-primary"
+                />
+                <span className="text-xs text-text-secondary">🔊</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 

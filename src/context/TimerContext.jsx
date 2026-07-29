@@ -8,19 +8,20 @@ export function TimerProvider({ children }) {
   const [timerKey, setTimerKey] = useState(0);
   const [soundType, setSoundType] = useState('ding');
   const [volume, setVolume] = useState(0.7);
+  const [restEnabled, setRestEnabled] = useState(true);
 
   useEffect(() => {
     db.userSettings.get('settings').then(s => {
       if (s?.restSoundType !== undefined) setSoundType(s.restSoundType);
       if (s?.restVolume !== undefined) setVolume(s.restVolume);
+      if (s?.restEnabled !== undefined) setRestEnabled(s.restEnabled);
     });
   }, []);
 
   const startTimer = (seconds) => {
-    if (seconds > 0) {
-      setTimerSeconds(seconds);
-      setTimerKey(k => k + 1);
-    }
+    if (!restEnabled || seconds <= 0) return;
+    setTimerSeconds(seconds);
+    setTimerKey(k => k + 1);
   };
 
   const dismissTimer = () => setTimerSeconds(null);

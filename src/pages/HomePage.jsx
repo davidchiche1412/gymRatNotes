@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
@@ -18,10 +18,11 @@ export default function HomePage() {
   const { startTimer } = useTimer();
   const [routine, setRoutine] = useState(null);
   const [exerciseInfoMap, setExerciseInfoMap] = useState({});
-  const [workoutData, setWorkoutData] = useState(null); // { exercises: [{ exerciseId, sets: [...] }] }
+  const [workoutData, setWorkoutData] = useState(null);
   const [previousDataMap, setPreviousDataMap] = useState({});
-  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showSaved, setShowSaved] = useState(false);
+  const savedTimeout = useRef(null);
 
   const getExName = useCallback((ex) => {
     if (!ex) return '';
@@ -120,8 +121,19 @@ export default function HomePage() {
   }, []);
 
   const updateWorkout = async (updated) => {
+    // Auto-guardar: marcar finishedAt si hay alguna serie completada
+    const hasCompleted = updated.exercises.some(ex => ex.sets.some(s => s.completed));
+    if (hasCompleted && !updated.finishedAt) {
+      updated = { ...updated, finishedAt: Date.now() };
+    } else if (!hasCompleted && updated.finishedAt) {
+      updated = { ...updated, finishedAt: null };
+    }
     setWorkoutData(updated);
     await db.workouts.put(updated);
+    // Feedback visual
+    setShowSaved(true);
+    clearTimeout(savedTimeout.current);
+    savedTimeout.current = setTimeout(() => setShowSaved(false), 2000);
   };
 
   const handleSetChange = (exIdx, setIdx, field, value) => {
@@ -147,16 +159,6 @@ export default function HomePage() {
       const restTime = routine.restTime ?? 60;
       startTimer(restTime);
     }
-  };
-
-  const handleSaveWorkout = async () => {
-    if (!workoutData) return;
-    const finished = { ...workoutData, finishedAt: Date.now() };
-    await db.workouts.put(finished);
-    setWorkoutData(finished);
-    setSaved(true);
-    // Permitir seguir editando tras guardar
-    setTimeout(() => setSaved(false), 2000);
   };
 
   const handleResetWorkout = async () => {
@@ -200,7 +202,6 @@ export default function HomePage() {
     };
     await db.workouts.add(newWorkout);
     setWorkoutData(newWorkout);
-    setSaved(false);
   };
 
   const totalSets = workoutData?.exercises?.reduce((sum, ex) => sum + ex.sets.length, 0) || 0;
@@ -369,14 +370,12 @@ export default function HomePage() {
           );
         })}
 
-        {/* Botón guardar */}
-        <button
-          onClick={handleSaveWorkout}
-          disabled={completedSets === 0}
-          className="w-full mt-2 py-3.5 bg-primary text-white rounded-xl text-base font-semibold active:scale-[0.98] transition-transform disabled:opacity-40"
-        >
-          {saved ? '✓ ' + t('today.saved') : t('today.saveWorkout')}
-        </button>
+        {/* Indicador auto-guardado */}
+        {showSaved && (
+          <p className="text-center text-xs text-primary font-medium mt-3 animate-pulse">
+            ✓ {t('today.autoSaved')}
+          </p>
+        )}
       </div>
 
       <Modal {...modal} />
