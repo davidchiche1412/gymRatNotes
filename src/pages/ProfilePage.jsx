@@ -166,7 +166,12 @@ function MeasurementsSection() {
   const { t, i18n } = useTranslation();
   const [measurements, setMeasurements] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' });
+  const { modal, confirm } = useModal();
+
+  const locale = i18n.language === 'es' ? 'es-ES' : 'en-US';
+  const fields = ['weight', 'chest', 'waist', 'hips', 'biceps', 'thigh', 'calf'];
 
   const loadMeasurements = async () => {
     const all = await db.bodyMeasurements.orderBy('date').reverse().toArray();
@@ -176,6 +181,8 @@ function MeasurementsSection() {
   useEffect(() => { loadMeasurements(); }, []);
 
   const handleSave = async () => {
+    const hasData = fields.some(f => form[f] !== '');
+    if (!hasData) return;
     await db.bodyMeasurements.add({
       id: uuidv4(),
       date: Date.now(),
@@ -192,27 +199,58 @@ function MeasurementsSection() {
     loadMeasurements();
   };
 
+  const handleDelete = async (id) => {
+    const ok = await confirm({
+      title: t('profile.deleteMeasurement'),
+      message: t('profile.confirmDeleteMeasurement'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+    });
+    if (!ok) return;
+    await db.bodyMeasurements.delete(id);
+    if (expandedId === id) setExpandedId(null);
+    loadMeasurements();
+  };
+
+  const formatDate = (ts) => {
+    return new Date(ts).toLocaleDateString(locale, {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+    });
+  };
+
+  // Resumen corto para la tarjeta cerrada
+  const getSummary = (m) => {
+    const parts = [];
+    if (m.weight != null) parts.push(`${m.weight} kg`);
+    const bodyParts = ['chest', 'waist', 'hips', 'biceps', 'thigh', 'calf'].filter(f => m[f] != null);
+    if (bodyParts.length > 0) parts.push(`${bodyParts.length} ${t('profile.measurementCount')}`);
+    return parts.join(' · ');
+  };
+
   const weightData = measurements
     .filter(m => m.weight != null)
     .sort((a, b) => a.date - b.date)
     .map(m => ({
-      date: new Date(m.date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric' }),
+      date: new Date(m.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
       weight: m.weight,
     }));
 
-  const fields = ['weight', 'chest', 'waist', 'hips', 'biceps', 'thigh', 'calf'];
-
   return (
     <div className="space-y-4">
+      {/* Header con botón añadir */}
       <div className="flex justify-between items-center">
         <h3 className="font-semibold">{t('profile.measurements')}</h3>
-        <button onClick={() => setShowForm(!showForm)} className="text-primary text-sm font-medium">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-medium"
+        >
           + {t('profile.addMeasurement')}
         </button>
       </div>
 
+      {/* Formulario */}
       {showForm && (
-        <div className="bg-bg rounded-xl p-4 space-y-2">
+        <div className="bg-surface rounded-xl p-4 border border-border space-y-2">
           {fields.map(f => (
             <input
               key={f}
@@ -221,16 +259,28 @@ function MeasurementsSection() {
               placeholder={t(`profile.${f === 'weight' ? 'bodyWeight' : f}`)}
               value={form[f]}
               onChange={e => setForm({ ...form, [f]: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm"
             />
           ))}
-          <button onClick={handleSave} className="w-full py-2 bg-primary text-white rounded-lg text-sm font-medium">
-            {t('common.save')}
-          </button>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => { setShowForm(false); setForm({ weight: '', chest: '', waist: '', hips: '', biceps: '', thigh: '', calf: '' }); }}
+              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-text-secondary"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!fields.some(f => form[f] !== '')}
+              className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40"
+            >
+              {t('common.save')}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Weight evolution chart */}
+      {/* Gráfica de peso */}
       {weightData.length > 1 && (
         <div>
           <h4 className="text-sm font-medium mb-2">{t('profile.weightEvolution')}</h4>
@@ -245,29 +295,90 @@ function MeasurementsSection() {
         </div>
       )}
 
-      {/* Measurements history */}
+      {/* Lista de medidas (estilo historial) */}
       {measurements.length === 0 ? (
-        <p className="text-sm text-text-secondary">{t('profile.noMeasurements')}</p>
+        <p className="text-center text-text-secondary py-12 text-sm">
+          {t('profile.noMeasurements')}
+        </p>
       ) : (
         <div className="space-y-2">
-          {measurements.slice(0, 10).map(m => (
-            <div key={m.id} className="bg-bg rounded-lg px-3 py-2">
-              <p className="text-xs text-text-secondary mb-1">
-                {new Date(m.date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US')}
-              </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
-                {m.weight != null && <span>⚖️ {m.weight} kg</span>}
-                {m.chest != null && <span>{t('profile.chest').split(' ')[0]}: {m.chest} cm</span>}
-                {m.waist != null && <span>{t('profile.waist').split(' ')[0]}: {m.waist} cm</span>}
-                {m.hips != null && <span>{t('profile.hips').split(' ')[0]}: {m.hips} cm</span>}
-                {m.biceps != null && <span>{t('profile.biceps').split(' ')[0]}: {m.biceps} cm</span>}
-                {m.thigh != null && <span>{t('profile.thigh').split(' ')[0]}: {m.thigh} cm</span>}
-                {m.calf != null && <span>{t('profile.calf').split(' ')[0]}: {m.calf} cm</span>}
-              </div>
+          {measurements.map(m => (
+            <div key={m.id} className="bg-surface rounded-xl border border-border overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                className="w-full p-3 text-left"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-semibold text-sm">{formatDate(m.date)}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{getSummary(m)}</p>
+                    {m.weight != null && (
+                      <p className="text-xs text-primary mt-0.5">⚖️ {m.weight} kg</p>
+                    )}
+                  </div>
+                  <span className="text-text-secondary text-xs">{expandedId === m.id ? '▲' : '▼'}</span>
+                </div>
+              </button>
+
+              {expandedId === m.id && (
+                <div className="px-3 pb-3 border-t border-border pt-2">
+                  <div className="space-y-1">
+                    {m.weight != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.bodyWeight').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.weight} kg</span>
+                      </div>
+                    )}
+                    {m.chest != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.chest').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.chest} cm</span>
+                      </div>
+                    )}
+                    {m.waist != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.waist').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.waist} cm</span>
+                      </div>
+                    )}
+                    {m.hips != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.hips').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.hips} cm</span>
+                      </div>
+                    )}
+                    {m.biceps != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.biceps').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.biceps} cm</span>
+                      </div>
+                    )}
+                    {m.thigh != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.thigh').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.thigh} cm</span>
+                      </div>
+                    )}
+                    {m.calf != null && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-text-secondary">{t('profile.calf').replace(/ \(.*/, '')}</span>
+                        <span className="font-medium">{m.calf} cm</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDelete(m.id)}
+                    className="text-danger text-xs mt-2"
+                  >
+                    {t('profile.deleteMeasurement')}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
+      <Modal {...modal} />
     </div>
   );
 }

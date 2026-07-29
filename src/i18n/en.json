@@ -144,7 +144,10 @@
     "thigh": "Thigh (cm)",
     "calf": "Calf (cm)",
     "noMeasurements": "No measurements recorded",
-    "weightEvolution": "Body Weight Evolution"
+    "weightEvolution": "Body Weight Evolution",
+    "deleteMeasurement": "Delete measurement",
+    "confirmDeleteMeasurement": "Delete this measurement?",
+    "measurementCount": "measurements"
   },
   "days": {
     "0": "Monday",

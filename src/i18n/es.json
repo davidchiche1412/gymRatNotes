@@ -144,7 +144,10 @@
     "thigh": "Muslo (cm)",
     "calf": "Gemelo (cm)",
     "noMeasurements": "No hay medidas registradas",
-    "weightEvolution": "Evolución del Peso Corporal"
+    "weightEvolution": "Evolución del Peso Corporal",
+    "deleteMeasurement": "Eliminar medida",
+    "confirmDeleteMeasurement": "¿Eliminar esta medida?",
+    "measurementCount": "medidas"
   },
   "days": {
     "0": "Lunes",
