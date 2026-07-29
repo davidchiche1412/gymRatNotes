@@ -6,11 +6,11 @@ const TimerContext = createContext(null);
 export function TimerProvider({ children }) {
   const [timerSeconds, setTimerSeconds] = useState(null);
   const [timerKey, setTimerKey] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundType, setSoundType] = useState('ding');
 
   useEffect(() => {
     db.userSettings.get('settings').then(s => {
-      if (s?.restSound) setSoundEnabled(true);
+      if (s?.restSoundType !== undefined) setSoundType(s.restSoundType);
     });
   }, []);
 
@@ -24,7 +24,7 @@ export function TimerProvider({ children }) {
   const dismissTimer = () => setTimerSeconds(null);
 
   return (
-    <TimerContext.Provider value={{ timerSeconds, timerKey, soundEnabled, startTimer, dismissTimer }}>
+    <TimerContext.Provider value={{ timerSeconds, timerKey, soundType, startTimer, dismissTimer }}>
       {children}
     </TimerContext.Provider>
   );

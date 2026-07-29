@@ -172,16 +172,8 @@ function RoutineEditor({ routine, onSave, onCancel }) {
   const [name, setName] = useState(routine?.name || '');
   const [exercises, setExercises] = useState(routine?.exercises || []);
   const [restTime, setRestTime] = useState(routine?.restTime ?? 60);
-  const [restSound, setRestSound] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
   const [exerciseInfoMap, setExerciseInfoMap] = useState({});
-
-  // Cargar preferencia global de sonido
-  useEffect(() => {
-    db.userSettings.get('settings').then(s => {
-      if (s?.restSound) setRestSound(true);
-    });
-  }, []);
 
   useEffect(() => {
     const ids = exercises.map(e => e.exerciseId);
@@ -260,18 +252,6 @@ function RoutineEditor({ routine, onSave, onCancel }) {
           min={0}
         />
         <span className="text-xs text-text-secondary">s</span>
-        <button
-          onClick={async () => {
-            const newVal = !restSound;
-            setRestSound(newVal);
-            const s = await db.userSettings.get('settings') || { id: 'settings' };
-            await db.userSettings.put({ ...s, restSound: newVal });
-          }}
-          className={`ml-auto text-lg ${restSound ? 'text-primary' : 'text-text-secondary/40'}`}
-          title={t('routines.sound')}
-        >
-          {restSound ? '🔔' : '🔕'}
-        </button>
       </div>
 
       <DraggableExerciseList

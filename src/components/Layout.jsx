@@ -13,7 +13,7 @@ const navItems = [
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { timerSeconds, timerKey, soundEnabled, dismissTimer } = useTimer();
+  const { timerSeconds, timerKey, soundType, dismissTimer } = useTimer();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
@@ -74,7 +74,7 @@ export default function Layout() {
         <RestTimer
           key={timerKey}
           seconds={timerSeconds}
-          soundEnabled={soundEnabled}
+          soundType={soundType}
           onDismiss={dismissTimer}
         />
       )}

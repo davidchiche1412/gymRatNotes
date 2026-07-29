@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
+import { playSound } from '../components/RestTimer';
 
 function StatsSection() {
   const { t, i18n } = useTranslation();
@@ -274,12 +275,14 @@ function MeasurementsSection() {
 function SettingsSection() {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
+  const [restSoundType, setRestSoundType] = useState('ding');
   const { modal, confirm, alert: showAlert } = useModal();
 
   useEffect(() => {
     db.userSettings.get('settings').then(s => {
       if (s?.name) setName(s.name);
       if (s?.language) i18n.changeLanguage(s.language);
+      if (s?.restSoundType !== undefined) setRestSoundType(s.restSoundType);
     });
   }, []);
 
@@ -384,6 +387,37 @@ function SettingsSection() {
           >
             English
           </button>
+        </div>
+      </div>
+
+      {/* Sonido del timer */}
+      <div>
+        <label className="text-sm font-medium block mb-2">{t('profile.timerSound')}</label>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { key: 'none', label: t('profile.soundNone'), icon: '🔕' },
+            { key: 'ding', label: 'Ding', icon: '🔔' },
+            { key: 'bell', label: t('profile.soundBell'), icon: '🥊' },
+            { key: 'beep', label: 'Beep', icon: '📟' },
+          ].map(opt => (
+            <button
+              key={opt.key}
+              onClick={async () => {
+                setRestSoundType(opt.key);
+                const s = await db.userSettings.get('settings') || { id: 'settings' };
+                await db.userSettings.put({ ...s, restSoundType: opt.key });
+                if (opt.key !== 'none') playSound(opt.key);
+              }}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                restSoundType === opt.key
+                  ? 'bg-primary text-white'
+                  : 'bg-surface border border-border'
+              }`}
+            >
+              <span>{opt.icon}</span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

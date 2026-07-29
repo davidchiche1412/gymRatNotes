@@ -1,13 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// Campana tipo ring de boxeo: tono metálico con decay
+const BASE = import.meta.env.BASE_URL;
+
+// Sonidos disponibles
+function playDing() {
+  const audio = new Audio(BASE + 'ding.mp3');
+  audio.play().catch(() => {});
+}
+
 function playBell() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const now = ctx.currentTime;
-
-    // Tono principal (campana grave)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = 'sine';
@@ -18,50 +23,52 @@ function playBell() {
     gain1.connect(ctx.destination);
     osc1.start(now);
     osc1.stop(now + 1.2);
-
-    // Armónico metálico
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'square';
-    osc2.frequency.value = 680;
-    gain2.gain.setValueAtTime(0.15, now);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now);
-    osc2.stop(now + 0.6);
-
-    // Armónico alto (brillo)
-    const osc3 = ctx.createOscillator();
-    const gain3 = ctx.createGain();
-    osc3.type = 'sine';
-    osc3.frequency.value = 1020;
-    gain3.gain.setValueAtTime(0.08, now);
-    gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-    osc3.connect(gain3);
-    gain3.connect(ctx.destination);
-    osc3.start(now);
-    osc3.stop(now + 0.4);
-
-    // Segundo golpe (ring bell = doble)
     setTimeout(() => {
       const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
-      const now2 = ctx2.currentTime;
+      const n = ctx2.currentTime;
       const o = ctx2.createOscillator();
       const g = ctx2.createGain();
       o.type = 'sine';
       o.frequency.value = 340;
-      g.gain.setValueAtTime(0.5, now2);
-      g.gain.exponentialRampToValueAtTime(0.001, now2 + 1.0);
+      g.gain.setValueAtTime(0.5, n);
+      g.gain.exponentialRampToValueAtTime(0.001, n + 1.0);
       o.connect(g);
       g.connect(ctx2.destination);
-      o.start(now2);
-      o.stop(now2 + 1.0);
+      o.start(n);
+      o.stop(n + 1.0);
     }, 300);
   } catch {}
 }
 
-export default function RestTimer({ seconds, soundEnabled = false, onDismiss }) {
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    [0, 0.2, 0.4].forEach(offset => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 1000;
+      gain.gain.setValueAtTime(0.2, now + offset);
+      gain.gain.setValueAtTime(0, now + offset + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.12);
+    });
+  } catch {}
+}
+
+export function playSound(soundType) {
+  switch (soundType) {
+    case 'ding': playDing(); break;
+    case 'bell': playBell(); break;
+    case 'beep': playBeep(); break;
+    default: break;
+  }
+}
+
+export default function RestTimer({ seconds, soundType = 'none', onDismiss }) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(seconds);
   const startRef = useRef(Date.now());
@@ -79,7 +86,7 @@ export default function RestTimer({ seconds, soundEnabled = false, onDismiss }) 
         setRemaining(0);
         clearInterval(interval);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        if (soundEnabled) playBell();
+        if (soundType !== 'none') playSound(soundType);
       } else {
         setRemaining(left);
       }
