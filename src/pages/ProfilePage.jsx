@@ -276,6 +276,7 @@ function SettingsSection() {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
   const [restSoundType, setRestSoundType] = useState('ding');
+  const [volume, setVolume] = useState(0.7);
   const { modal, confirm, alert: showAlert } = useModal();
 
   useEffect(() => {
@@ -283,6 +284,7 @@ function SettingsSection() {
       if (s?.name) setName(s.name);
       if (s?.language) i18n.changeLanguage(s.language);
       if (s?.restSoundType !== undefined) setRestSoundType(s.restSoundType);
+      if (s?.restVolume !== undefined) setVolume(s.restVolume);
     });
   }, []);
 
@@ -406,7 +408,7 @@ function SettingsSection() {
                 setRestSoundType(opt.key);
                 const s = await db.userSettings.get('settings') || { id: 'settings' };
                 await db.userSettings.put({ ...s, restSoundType: opt.key });
-                if (opt.key !== 'none') playSound(opt.key);
+                if (opt.key !== 'none') playSound(opt.key, volume);
               }}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                 restSoundType === opt.key
@@ -419,6 +421,26 @@ function SettingsSection() {
             </button>
           ))}
         </div>
+        {restSoundType !== 'none' && (
+          <div className="flex items-center gap-3 mt-3">
+            <span className="text-xs text-text-secondary">🔈</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={volume}
+              onChange={async (e) => {
+                const v = parseFloat(e.target.value);
+                setVolume(v);
+                const s = await db.userSettings.get('settings') || { id: 'settings' };
+                await db.userSettings.put({ ...s, restVolume: v });
+              }}
+              className="flex-1 h-2 rounded-full appearance-none bg-border accent-primary"
+            />
+            <span className="text-xs text-text-secondary">🔊</span>
+          </div>
+        )}
       </div>
 
       {/* Data */}

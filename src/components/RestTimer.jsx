@@ -4,14 +4,18 @@ import { useTranslation } from 'react-i18next';
 const BASE = import.meta.env.BASE_URL;
 
 // Sonidos disponibles
-function playDing() {
+function playDing(vol) {
   const audio = new Audio(BASE + 'ding.mp3');
+  audio.volume = vol;
   audio.play().catch(() => {});
 }
 
-function playBell() {
+function playBell(vol) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain();
+    master.gain.value = vol;
+    master.connect(ctx.destination);
     const now = ctx.currentTime;
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
@@ -20,11 +24,14 @@ function playBell() {
     gain1.gain.setValueAtTime(0.6, now);
     gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
     osc1.connect(gain1);
-    gain1.connect(ctx.destination);
+    gain1.connect(master);
     osc1.start(now);
     osc1.stop(now + 1.2);
     setTimeout(() => {
       const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+      const m2 = ctx2.createGain();
+      m2.gain.value = vol;
+      m2.connect(ctx2.destination);
       const n = ctx2.currentTime;
       const o = ctx2.createOscillator();
       const g = ctx2.createGain();
@@ -33,16 +40,19 @@ function playBell() {
       g.gain.setValueAtTime(0.5, n);
       g.gain.exponentialRampToValueAtTime(0.001, n + 1.0);
       o.connect(g);
-      g.connect(ctx2.destination);
+      g.connect(m2);
       o.start(n);
       o.stop(n + 1.0);
     }, 300);
   } catch {}
 }
 
-function playBeep() {
+function playBeep(vol) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain();
+    master.gain.value = vol;
+    master.connect(ctx.destination);
     const now = ctx.currentTime;
     [0, 0.2, 0.4].forEach(offset => {
       const osc = ctx.createOscillator();
@@ -52,23 +62,23 @@ function playBeep() {
       gain.gain.setValueAtTime(0.2, now + offset);
       gain.gain.setValueAtTime(0, now + offset + 0.12);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(master);
       osc.start(now + offset);
       osc.stop(now + offset + 0.12);
     });
   } catch {}
 }
 
-export function playSound(soundType) {
+export function playSound(soundType, vol = 0.7) {
   switch (soundType) {
-    case 'ding': playDing(); break;
-    case 'bell': playBell(); break;
-    case 'beep': playBeep(); break;
+    case 'ding': playDing(vol); break;
+    case 'bell': playBell(vol); break;
+    case 'beep': playBeep(vol); break;
     default: break;
   }
 }
 
-export default function RestTimer({ seconds, soundType = 'none', onDismiss }) {
+export default function RestTimer({ seconds, soundType = 'none', volume = 0.7, onDismiss }) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(seconds);
   const startRef = useRef(Date.now());
@@ -86,7 +96,7 @@ export default function RestTimer({ seconds, soundType = 'none', onDismiss }) {
         setRemaining(0);
         clearInterval(interval);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        if (soundType !== 'none') playSound(soundType);
+        if (soundType !== 'none') playSound(soundType, volume);
       } else {
         setRemaining(left);
       }
