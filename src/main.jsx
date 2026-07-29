@@ -5,7 +5,7 @@ import './i18n/i18n'
 import { initializeDatabase } from './db/seed'
 import App from './App.jsx'
 
-initializeDatabase().then(() => {
+initializeDatabase().catch(() => {}).finally(() => {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <App />

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTimer } from '../context/TimerContext';
 import RestTimer from './RestTimer';
@@ -13,9 +13,12 @@ const navItems = [
 
 export default function Layout() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { timerSeconds, timerKey, soundType, volume, dismissTimer } = useTimer();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const touchRef = useRef({ startX: 0, startY: 0 });
 
   useEffect(() => {
     const handleReady = () => {
@@ -26,6 +29,35 @@ export default function Layout() {
     window.addEventListener('pwainstallready', handleReady);
     return () => window.removeEventListener('pwainstallready', handleReady);
   }, []);
+
+  // Swipe lateral para navegar entre tabs
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      touchRef.current.startX = e.touches[0].clientX;
+      touchRef.current.startY = e.touches[0].clientY;
+    };
+    const handleTouchEnd = (e) => {
+      const dx = e.changedTouches[0].clientX - touchRef.current.startX;
+      const dy = e.changedTouches[0].clientY - touchRef.current.startY;
+      // Solo swipe horizontal significativo
+      if (Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
+
+      const currentIdx = navItems.findIndex(item => item.path === location.pathname);
+      if (currentIdx === -1) return;
+
+      if (dx < 0 && currentIdx < navItems.length - 1) {
+        navigate(navItems[currentIdx + 1].path);
+      } else if (dx > 0 && currentIdx > 0) {
+        navigate(navItems[currentIdx - 1].path);
+      }
+    };
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [location.pathname, navigate]);
 
   const handleInstall = async () => {
     if (!installPrompt) return;
