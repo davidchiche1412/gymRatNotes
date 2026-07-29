@@ -287,7 +287,7 @@ function MeasurementsSection() {
           <button
             onClick={() => setShowFieldEditor(!showFieldEditor)}
             className="px-2 py-2 text-text-secondary rounded-xl text-xs"
-            title={t('profile.editFields')}
+            aria-label={t('profile.editFields')}
           >
             ⚙️
           </button>
@@ -575,6 +575,9 @@ function SettingsSection() {
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-medium">{t('profile.restTimer')}</label>
           <button
+            role="switch"
+            aria-checked={restEnabled}
+            aria-label={t('profile.restTimer')}
             onClick={async () => {
               const newVal = !restEnabled;
               setRestEnabled(newVal);

@@ -151,10 +151,10 @@ export default function RestTimer({ seconds, soundType = 'none', volume = 0.7, o
   const isFinished = remaining === 0;
 
   return (
-    <div className="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+    <div className="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none" role="status" aria-live="polite" aria-atomic="true">
       <div className="pointer-events-auto bg-surface border border-border rounded-2xl shadow-lg px-5 py-3 flex items-center gap-4 max-w-sm w-full animate-scale-in">
         {/* Progreso circular */}
-        <div className="relative w-12 h-12 flex-shrink-0">
+        <div className="relative w-12 h-12 flex-shrink-0" aria-hidden="true">
           <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3" className="text-border" />
             <circle
@@ -182,7 +182,8 @@ export default function RestTimer({ seconds, soundType = 'none', volume = 0.7, o
 
         <button
           onClick={onDismiss}
-          className="text-text-secondary text-lg px-2"
+          aria-label={t('common.close')}
+          className="text-text-secondary text-lg px-2 hover:text-text transition-colors"
         >
           ✕
         </button>

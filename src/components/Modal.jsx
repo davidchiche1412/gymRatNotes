@@ -9,17 +9,25 @@ export default function Modal({ open, title, message, confirmText, cancelText, o
     }
   }, [open]);
 
+  // Cerrar con Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e) => { if (e.key === 'Escape') onCancel?.(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} aria-hidden="true" />
 
       {/* Modal */}
       <div className="relative bg-surface border border-border rounded-2xl w-full max-w-sm p-5 animate-scale-in">
         {title && (
-          <h3 className="text-base font-bold mb-2">{title}</h3>
+          <h3 id="modal-title" className="text-base font-bold mb-2">{title}</h3>
         )}
         {message && (
           <p className="text-sm text-text-secondary mb-5">{message}</p>
