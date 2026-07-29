@@ -62,7 +62,8 @@
     "weeklySchedule": "Programación Semanal",
     "assignRoutine": "Asignar rutina",
     "noRoutineAssigned": "Sin rutina",
-    "restTime": "Desc.(s)"
+    "restTime": "Descanso",
+    "restTimeBetweenSets": "Descanso entre series"
   },
   "exercises": {
     "title": "Ejercicios",

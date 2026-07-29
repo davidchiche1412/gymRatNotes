@@ -62,7 +62,8 @@
     "weeklySchedule": "Weekly Schedule",
     "assignRoutine": "Assign routine",
     "noRoutineAssigned": "No routine",
-    "restTime": "Rest(s)"
+    "restTime": "Rest",
+    "restTimeBetweenSets": "Rest between sets"
   },
   "exercises": {
     "title": "Exercises",

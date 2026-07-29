@@ -159,18 +159,6 @@ function DraggableExerciseList({ exercises, exerciseInfoMap, getExName, onReorde
                   />
                 </div>
               )}
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] text-text-secondary mb-0.5">{t('routines.restTime')}</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="60"
-                  value={ex.restTime ?? ''}
-                  onChange={e => onUpdate(i, 'restTime', e.target.value === '' ? null : Number(e.target.value))}
-                  className="w-14 text-center px-1 py-1.5 rounded-lg border border-border bg-bg text-sm"
-                  min={0}
-                />
-              </div>
             </div>
           </div>
         );
@@ -183,6 +171,7 @@ function RoutineEditor({ routine, onSave, onCancel }) {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState(routine?.name || '');
   const [exercises, setExercises] = useState(routine?.exercises || []);
+  const [restTime, setRestTime] = useState(routine?.restTime ?? 60);
   const [showSelector, setShowSelector] = useState(false);
   const [exerciseInfoMap, setExerciseInfoMap] = useState({});
 
@@ -227,7 +216,7 @@ function RoutineEditor({ routine, onSave, onCancel }) {
 
   const handleSave = () => {
     if (!name.trim()) return;
-    onSave({ name: name.trim(), exercises });
+    onSave({ name: name.trim(), exercises, restTime });
   };
 
   const getExName = (id) => {
@@ -248,8 +237,22 @@ function RoutineEditor({ routine, onSave, onCancel }) {
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder={t('routines.name')}
-        className="w-full px-4 py-3 rounded-xl border border-border bg-surface text-sm mb-4"
+        className="w-full px-4 py-3 rounded-xl border border-border bg-surface text-sm mb-3"
       />
+
+      {/* Descanso global */}
+      <div className="flex items-center gap-3 mb-4 px-1">
+        <span className="text-sm text-text-secondary">⏱ {t('routines.restTimeBetweenSets')}</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={restTime}
+          onChange={e => setRestTime(Number(e.target.value) || 0)}
+          className="w-16 text-center px-2 py-1.5 rounded-lg border border-border bg-bg text-sm"
+          min={0}
+        />
+        <span className="text-xs text-text-secondary">s</span>
+      </div>
 
       <DraggableExerciseList
         exercises={exercises}

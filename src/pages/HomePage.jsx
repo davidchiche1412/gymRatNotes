@@ -145,10 +145,11 @@ export default function HomePage() {
 
     // Iniciar timer al marcar como completada
     if (!wasCompleted && routine) {
-      const routineEx = routine.exercises[exIdx];
-      const restTime = routineEx?.restTime || 60;
-      setTimerSeconds(restTime);
-      setTimerKey(k => k + 1);
+      const restTime = routine.restTime ?? 60;
+      if (restTime > 0) {
+        setTimerSeconds(restTime);
+        setTimerKey(k => k + 1);
+      }
     }
   };
 
