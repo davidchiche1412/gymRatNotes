@@ -30,6 +30,10 @@ body {
   color: var(--color-text);
 }
 
+button, [role="button"] {
+  cursor: pointer;
+}
+
 #root {
   max-width: 100%;
   margin: 0 auto;
