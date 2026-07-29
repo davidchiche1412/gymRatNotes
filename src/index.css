@@ -30,8 +30,8 @@ body {
   color: var(--color-text);
 }
 
-button, [role="button"] {
-  cursor: pointer;
+button, [role="button"], select {
+  cursor: pointer !important;
 }
 
 #root {

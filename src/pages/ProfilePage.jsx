@@ -105,7 +105,7 @@ function StatsSection() {
         <select
           value={selectedExercise}
           onChange={e => setSelectedExercise(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm mb-2"
+          className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm mb-2 hover:border-primary/40 transition-colors"
         >
           {exercises.map(ex => (
             <option key={ex.id} value={ex.id}>{getExName(ex)}</option>
@@ -681,7 +681,7 @@ export default function ProfilePage() {
           <button
             key={tb.key}
             onClick={() => setTab(tb.key)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === tb.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary'}`}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === tb.key ? 'bg-primary text-white shadow-sm' : 'text-text-secondary hover:text-text'}`}
           >
             {tb.label}
           </button>

@@ -120,8 +120,8 @@ export default function Layout() {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors ${
-                  isActive ? 'text-primary' : 'text-text-secondary'
+                `flex flex-col items-center gap-0.5 text-[10px] font-medium transition-colors cursor-pointer ${
+                  isActive ? 'text-primary' : 'text-text-secondary hover:text-text'
                 }`
               }
             >

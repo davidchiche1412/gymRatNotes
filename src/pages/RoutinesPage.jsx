@@ -405,7 +405,7 @@ export default function RoutinesPage() {
         <h1 className="text-xl font-bold">{t('routines.title')}</h1>
         <button
           onClick={() => setEditing('new')}
-          className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-medium"
+          className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-medium hover:bg-primary-dark transition-colors"
         >
           + {t('routines.create')}
         </button>
@@ -421,7 +421,7 @@ export default function RoutinesPage() {
             <div
               key={r.id}
               onClick={() => setEditing(r.id)}
-              className="bg-surface rounded-xl p-4 border border-border active:scale-[0.98] transition-transform cursor-pointer"
+              className="bg-surface rounded-xl p-4 border border-border active:scale-[0.98] transition-all cursor-pointer hover:border-primary/40"
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -432,7 +432,7 @@ export default function RoutinesPage() {
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
-                  className="text-danger/70 text-xs p-1"
+                  className="text-danger/70 text-xs p-1 hover:text-danger transition-colors"
                 >
                   {t('routines.delete')}
                 </button>

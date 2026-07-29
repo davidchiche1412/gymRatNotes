@@ -240,7 +240,7 @@ export default function HomePage() {
           </div>
           <button
               onClick={handleResetWorkout}
-              className="text-xs text-text-secondary px-2 py-1"
+              className="text-xs text-text-secondary px-2 py-1 hover:text-danger transition-colors"
             >
               {t('today.resetWorkout')}
             </button>
@@ -357,8 +357,8 @@ export default function HomePage() {
                       
                       className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${
                         set.completed
-                          ? 'bg-primary text-white'
-                          : 'bg-bg border border-border text-text-secondary'
+                          ? 'bg-primary text-white hover:bg-primary-dark'
+                          : 'bg-bg border border-border text-text-secondary hover:border-primary hover:text-primary'
                       } active:scale-95`}
                     >
                       ✓
