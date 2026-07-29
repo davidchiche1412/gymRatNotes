@@ -387,6 +387,7 @@ export default function HomePage() {
         <RestTimer
           key={timerKey}
           seconds={timerSeconds}
+          soundEnabled={routine?.restSound ?? false}
           onDismiss={() => setTimerSeconds(null)}
         />
       )}

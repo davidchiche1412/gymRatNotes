@@ -1,11 +1,36 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export default function RestTimer({ seconds, onDismiss }) {
+export default function RestTimer({ seconds, soundEnabled = false, onDismiss }) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(seconds);
   const startRef = useRef(Date.now());
   const totalRef = useRef(seconds);
+
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.value = 0.3;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+      // Segundo beep
+      setTimeout(() => {
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.frequency.value = 1100;
+        gain2.gain.value = 0.3;
+        osc2.start();
+        osc2.stop(ctx.currentTime + 0.3);
+      }, 250);
+    } catch {}
+  };
 
   useEffect(() => {
     startRef.current = Date.now();
@@ -18,8 +43,8 @@ export default function RestTimer({ seconds, onDismiss }) {
       if (left <= 0) {
         setRemaining(0);
         clearInterval(interval);
-        // Vibrar si está disponible
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        if (soundEnabled) playBeep();
       } else {
         setRemaining(left);
       }

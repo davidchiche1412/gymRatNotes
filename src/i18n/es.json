@@ -63,7 +63,8 @@
     "assignRoutine": "Asignar rutina",
     "noRoutineAssigned": "Sin rutina",
     "restTime": "Descanso",
-    "restTimeBetweenSets": "Descanso entre series"
+    "restTimeBetweenSets": "Descanso entre series",
+    "sound": "Sonido al terminar"
   },
   "exercises": {
     "title": "Ejercicios",

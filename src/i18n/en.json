@@ -63,7 +63,8 @@
     "assignRoutine": "Assign routine",
     "noRoutineAssigned": "No routine",
     "restTime": "Rest",
-    "restTimeBetweenSets": "Rest between sets"
+    "restTimeBetweenSets": "Rest between sets",
+    "sound": "Sound on finish"
   },
   "exercises": {
     "title": "Exercises",

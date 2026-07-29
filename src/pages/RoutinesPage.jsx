@@ -172,6 +172,7 @@ function RoutineEditor({ routine, onSave, onCancel }) {
   const [name, setName] = useState(routine?.name || '');
   const [exercises, setExercises] = useState(routine?.exercises || []);
   const [restTime, setRestTime] = useState(routine?.restTime ?? 60);
+  const [restSound, setRestSound] = useState(routine?.restSound ?? false);
   const [showSelector, setShowSelector] = useState(false);
   const [exerciseInfoMap, setExerciseInfoMap] = useState({});
 
@@ -216,7 +217,7 @@ function RoutineEditor({ routine, onSave, onCancel }) {
 
   const handleSave = () => {
     if (!name.trim()) return;
-    onSave({ name: name.trim(), exercises, restTime });
+    onSave({ name: name.trim(), exercises, restTime, restSound });
   };
 
   const getExName = (id) => {
@@ -252,6 +253,13 @@ function RoutineEditor({ routine, onSave, onCancel }) {
           min={0}
         />
         <span className="text-xs text-text-secondary">s</span>
+        <button
+          onClick={() => setRestSound(!restSound)}
+          className={`ml-auto text-lg ${restSound ? 'text-primary' : 'text-text-secondary/40'}`}
+          title={t('routines.sound')}
+        >
+          {restSound ? '🔔' : '🔕'}
+        </button>
       </div>
 
       <DraggableExerciseList
@@ -355,17 +363,18 @@ export default function RoutinesPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [editing]);
 
-  const handleSave = async ({ name, exercises, restTime }) => {
+  const handleSave = async ({ name, exercises, restTime, restSound }) => {
     if (editing === 'new') {
       await db.routines.add({
         id: uuidv4(),
         name,
         exercises,
         restTime,
+        restSound,
         updatedAt: Date.now(),
       });
     } else {
-      await db.routines.update(editing, { name, exercises, restTime, updatedAt: Date.now() });
+      await db.routines.update(editing, { name, exercises, restTime, restSound, updatedAt: Date.now() });
     }
     setEditing(null);
     loadRoutines();
