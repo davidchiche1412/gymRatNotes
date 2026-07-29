@@ -5,6 +5,14 @@ import './i18n/i18n'
 import { initializeDatabase } from './db/seed'
 import App from './App.jsx'
 
+// SPA redirect desde 404.html
+const params = new URLSearchParams(window.location.search);
+const redirectPath = params.get('p');
+if (redirectPath) {
+  const cleaned = redirectPath.replace('/gymRatNotes', '') || '/';
+  window.history.replaceState(null, '', '/gymRatNotes' + cleaned);
+}
+
 initializeDatabase().catch(() => {}).finally(() => {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
