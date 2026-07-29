@@ -33,10 +33,18 @@ export default function Layout() {
   // Swipe lateral para navegar entre tabs
   useEffect(() => {
     const handleTouchStart = (e) => {
+      // Ignorar si el touch empieza en un input interactivo (sliders, etc)
+      const tag = e.target.tagName;
+      const type = e.target.type;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || type === 'range') {
+        touchRef.current.startX = null;
+        return;
+      }
       touchRef.current.startX = e.touches[0].clientX;
       touchRef.current.startY = e.touches[0].clientY;
     };
     const handleTouchEnd = (e) => {
+      if (touchRef.current.startX === null) return;
       const dx = e.changedTouches[0].clientX - touchRef.current.startX;
       const dy = e.changedTouches[0].clientY - touchRef.current.startY;
       // Solo swipe horizontal significativo
