@@ -5,29 +5,47 @@ const BASE = import.meta.env.BASE_URL;
 
 // AudioContext compartido (se reutiliza)
 let _audioCtx = null;
+let _currentMaster = null;
+let _currentAudio = null;
+
 function getAudioCtx() {
   if (!_audioCtx || _audioCtx.state === 'closed') {
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  // Reanudar si está suspendido (restricción de autoplay)
   if (_audioCtx.state === 'suspended') {
     _audioCtx.resume();
   }
   return _audioCtx;
 }
 
+// Detener cualquier sonido en curso
+function stopCurrent() {
+  if (_currentMaster) {
+    try { _currentMaster.disconnect(); } catch {}
+    _currentMaster = null;
+  }
+  if (_currentAudio) {
+    _currentAudio.pause();
+    _currentAudio = null;
+  }
+}
+
 function playDing(vol) {
+  stopCurrent();
   const audio = new Audio(BASE + 'ding.mp3');
   audio.volume = vol;
   audio.play().catch(() => {});
+  _currentAudio = audio;
 }
 
 function playBell(vol) {
   try {
+    stopCurrent();
     const ctx = getAudioCtx();
     const master = ctx.createGain();
     master.gain.value = vol;
     master.connect(ctx.destination);
+    _currentMaster = master;
     const now = ctx.currentTime;
 
     // Primer golpe
@@ -59,10 +77,12 @@ function playBell(vol) {
 
 function playBeep(vol) {
   try {
+    stopCurrent();
     const ctx = getAudioCtx();
     const master = ctx.createGain();
     master.gain.value = vol;
     master.connect(ctx.destination);
+    _currentMaster = master;
     const now = ctx.currentTime;
 
     [0, 0.2, 0.4].forEach(offset => {
@@ -81,6 +101,7 @@ function playBeep(vol) {
 }
 
 export function playSound(soundType, vol = 0.7) {
+  if (soundType === 'none') { stopCurrent(); return; }
   switch (soundType) {
     case 'ding': playDing(vol); break;
     case 'bell': playBell(vol); break;

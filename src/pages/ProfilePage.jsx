@@ -408,7 +408,7 @@ function SettingsSection() {
                 setRestSoundType(opt.key);
                 const s = await db.userSettings.get('settings') || { id: 'settings' };
                 await db.userSettings.put({ ...s, restSoundType: opt.key });
-                if (opt.key !== 'none') playSound(opt.key, volume);
+                playSound(opt.key, volume);
               }}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                 restSoundType === opt.key
