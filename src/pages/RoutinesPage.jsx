@@ -12,7 +12,10 @@ function DraggableExerciseList({ exercises, exerciseInfoMap, getExName, onReorde
   const itemRefs = useRef([]);
   const dragState = useRef({ from: null, over: null, active: false });
   const onReorderRef = useRef(onReorder);
-  onReorderRef.current = onReorder;
+
+  useEffect(() => {
+    onReorderRef.current = onReorder;
+  }, [onReorder]);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -184,7 +187,7 @@ function RoutineEditor({ routine, onSave, onCancel }) {
         setExerciseInfoMap(map);
       });
     }
-  }, [exercises.length]);
+  }, [exercises]);
 
   const handleAddExercise = (exercise) => {
     setExercises([...exercises, {
@@ -342,7 +345,13 @@ export default function RoutinesPage() {
     setRoutines(all);
   };
 
-  useEffect(() => { loadRoutines(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    db.routines.toArray().then(all => {
+      if (!cancelled) setRoutines(all);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Manejo del botón atrás para salir del editor
   useEffect(() => {

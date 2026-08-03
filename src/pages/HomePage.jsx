@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
-import { useTimer } from '../context/TimerContext';
+import { useTimer } from '../context/useTimer';
 import { applyAutoFinishedAt, createSetsFromRoutineExercise, syncWorkoutExercises } from '../utils/workoutSync';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)

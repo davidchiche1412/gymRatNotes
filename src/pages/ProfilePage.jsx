@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
-import { playSound } from '../components/RestTimer';
+import { playSound } from '../utils/timerSound';
 
 function StatsSection() {
   const { t, i18n } = useTranslation();
@@ -192,10 +192,14 @@ function MeasurementsSection() {
   };
 
   useEffect(() => {
-    loadMeasurements();
-    db.userSettings.get('settings').then(s => {
-      if (s?.measurementFields) setFields(s.measurementFields);
+    let cancelled = false;
+    db.bodyMeasurements.orderBy('date').reverse().toArray().then(all => {
+      if (!cancelled) setMeasurements(all);
     });
+    db.userSettings.get('settings').then(s => {
+      if (!cancelled && s?.measurementFields) setFields(s.measurementFields);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const saveFields = async (newFields) => {
@@ -464,7 +468,7 @@ function SettingsSection() {
       if (s?.restSoundType !== undefined) setRestSoundType(s.restSoundType);
       if (s?.restVolume !== undefined) setVolume(s.restVolume);
     });
-  }, []);
+  }, [i18n]);
 
   const handleNameChange = async (value) => {
     setName(value);

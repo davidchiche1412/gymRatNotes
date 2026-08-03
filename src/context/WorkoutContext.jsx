@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
-
-const WorkoutContext = createContext();
+import { WorkoutContext } from './workoutContextValue';
 
 export function WorkoutProvider({ children }) {
   const [activeWorkout, setActiveWorkout] = useState(null);
@@ -110,5 +109,3 @@ export function WorkoutProvider({ children }) {
     </WorkoutContext.Provider>
   );
 }
-
-export const useWorkout = () => useContext(WorkoutContext);

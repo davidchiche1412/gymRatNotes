@@ -60,7 +60,7 @@ npm run build
 npm run lint
 ```
 
-> Nota: actualmente el lint puede mostrar errores heredados de reglas React Hooks/Fast Refresh en partes antiguas de la app. El build y los tests unitarios del sync de rutinas pasan.
+El lint debe pasar antes de dar una tarea por finalizada.
 
 ## Uso básico
 
@@ -94,12 +94,10 @@ public/
 
 - Datos locales por dispositivo.
 - Sin multiusuario ni backend.
-- Lint heredado pendiente de limpiar.
 - El bundle principal supera 500KB minificado; se podría dividir con lazy loading.
 
 ## Roadmap
 
 - Autenticación y sincronización cloud.
 - Mejoras de estadísticas.
-- Limpieza completa de lint.
 - Code splitting por rutas.

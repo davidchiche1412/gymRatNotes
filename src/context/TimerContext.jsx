@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../db/database';
-
-const TimerContext = createContext(null);
+import { TimerContext } from './timerContextValue';
 
 export function TimerProvider({ children }) {
   const [timerSeconds, setTimerSeconds] = useState(null);
@@ -31,8 +30,4 @@ export function TimerProvider({ children }) {
       {children}
     </TimerContext.Provider>
   );
-}
-
-export function useTimer() {
-  return useContext(TimerContext);
 }

@@ -28,7 +28,31 @@ export default function HistoryPage() {
     }
   };
 
-  useEffect(() => { loadWorkouts(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    db.workouts
+      .where('finishedAt')
+      .above(0)
+      .reverse()
+      .sortBy('date')
+      .then(async (all) => {
+        if (cancelled) return;
+        setWorkouts(all.sort((a, b) => b.date - a.date));
+
+        const ids = [...new Set(all.flatMap(w => w.exercises.map(e => e.exerciseId)))];
+        if (ids.length === 0) {
+          setExerciseMap({});
+          return;
+        }
+
+        const exs = await db.exercises.where('id').anyOf(ids).toArray();
+        if (cancelled) return;
+        const map = {};
+        exs.forEach(e => { map[e.id] = e; });
+        setExerciseMap(map);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleDelete = async (id) => {
     const ok = await confirm({

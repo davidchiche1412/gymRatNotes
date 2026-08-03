@@ -1,134 +1,29 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-
-const BASE = import.meta.env.BASE_URL;
-
-// AudioContext compartido (se reutiliza)
-let _audioCtx = null;
-let _currentMaster = null;
-let _currentAudio = null;
-
-function getAudioCtx() {
-  if (!_audioCtx || _audioCtx.state === 'closed') {
-    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (_audioCtx.state === 'suspended') {
-    _audioCtx.resume();
-  }
-  return _audioCtx;
-}
-
-// Detener cualquier sonido en curso
-function stopCurrent() {
-  if (_currentMaster) {
-    try { _currentMaster.disconnect(); } catch {}
-    _currentMaster = null;
-  }
-  if (_currentAudio) {
-    _currentAudio.pause();
-    _currentAudio = null;
-  }
-}
-
-function playDing(vol) {
-  stopCurrent();
-  const audio = new Audio(BASE + 'ding.mp3');
-  audio.volume = vol;
-  audio.play().catch(() => {});
-  _currentAudio = audio;
-}
-
-function playBell(vol) {
-  try {
-    stopCurrent();
-    const ctx = getAudioCtx();
-    const master = ctx.createGain();
-    master.gain.value = vol;
-    master.connect(ctx.destination);
-    _currentMaster = master;
-    const now = ctx.currentTime;
-
-    // Primer golpe
-    const osc1 = ctx.createOscillator();
-    const g1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.value = 340;
-    g1.gain.setValueAtTime(0.6, now);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-    osc1.connect(g1);
-    g1.connect(master);
-    osc1.start(now);
-    osc1.stop(now + 1.2);
-
-    // Segundo golpe programado con Web Audio (sin setTimeout)
-    const osc2 = ctx.createOscillator();
-    const g2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.value = 340;
-    g2.gain.setValueAtTime(0.0, now);
-    g2.gain.setValueAtTime(0.5, now + 0.3);
-    g2.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
-    osc2.connect(g2);
-    g2.connect(master);
-    osc2.start(now + 0.3);
-    osc2.stop(now + 1.3);
-  } catch {}
-}
-
-function playBeep(vol) {
-  try {
-    stopCurrent();
-    const ctx = getAudioCtx();
-    const master = ctx.createGain();
-    master.gain.value = vol;
-    master.connect(ctx.destination);
-    _currentMaster = master;
-    const now = ctx.currentTime;
-
-    [0, 0.2, 0.4].forEach(offset => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'square';
-      osc.frequency.value = 1000;
-      g.gain.setValueAtTime(0.2, now + offset);
-      g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
-      osc.connect(g);
-      g.connect(master);
-      osc.start(now + offset);
-      osc.stop(now + offset + 0.15);
-    });
-  } catch {}
-}
-
-export function playSound(soundType, vol = 0.7) {
-  if (soundType === 'none') { stopCurrent(); return; }
-  switch (soundType) {
-    case 'ding': playDing(vol); break;
-    case 'bell': playBell(vol); break;
-    case 'beep': playBeep(vol); break;
-    default: break;
-  }
-}
+import { playSound } from '../utils/timerSound';
 
 export default function RestTimer({ seconds, soundType = 'none', volume = 0.7, onDismiss }) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(seconds);
-  const startRef = useRef(Date.now());
-  const totalRef = useRef(seconds);
+  const startRef = useRef(0);
+  const soundRef = useRef({ soundType, volume });
+
+  useEffect(() => {
+    soundRef.current = { soundType, volume };
+  }, [soundType, volume]);
 
   useEffect(() => {
     startRef.current = Date.now();
-    totalRef.current = seconds;
-    setRemaining(seconds);
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startRef.current) / 1000);
-      const left = totalRef.current - elapsed;
+      const left = seconds - elapsed;
       if (left <= 0) {
         setRemaining(0);
         clearInterval(interval);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        if (soundType !== 'none') playSound(soundType, volume);
+        const { soundType: currentSound, volume: currentVolume } = soundRef.current;
+        if (currentSound !== 'none') playSound(currentSound, currentVolume);
       } else {
         setRemaining(left);
       }
@@ -144,7 +39,7 @@ export default function RestTimer({ seconds, soundType = 'none', volume = 0.7, o
     return () => clearTimeout(timeout);
   }, [remaining, onDismiss]);
 
-  const progress = remaining / totalRef.current;
+  const progress = seconds > 0 ? remaining / seconds : 0;
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const display = `${mins}:${secs.toString().padStart(2, '0')}`;

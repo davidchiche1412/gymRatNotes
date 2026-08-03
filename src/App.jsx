@@ -17,7 +17,7 @@ export default function App() {
     db.userSettings.get('settings').then(s => {
       if (s?.language) i18n.changeLanguage(s.language);
     });
-  }, []);
+  }, [i18n]);
 
   return (
     <ThemeProvider>

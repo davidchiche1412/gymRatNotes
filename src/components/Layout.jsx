@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useTimer } from '../context/TimerContext';
+import { useTimer } from '../context/useTimer';
 import RestTimer from './RestTimer';
 
 const navItems = [
