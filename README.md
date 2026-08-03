@@ -1,16 +1,105 @@
-# React + Vite
+# GymRat Notes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+PWA para registrar entrenamientos de gimnasio, rutinas semanales, progreso de cargas y medidas corporales. Funciona como app instalable y guarda los datos localmente en el navegador.
 
-Currently, two official plugins are available:
+## Problema que resuelve
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Permite llevar un diario de entrenamiento rápido desde móvil o desktop sin depender de hojas de cálculo ni apps complejas. La app recuerda datos anteriores, precarga el entrenamiento del día y guarda cambios automáticamente.
 
-## React Compiler
+## Funcionalidades principales
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Rutinas semanales por día.
+- Entrenamiento del día con series, peso, repeticiones y duración.
+- Auto-guardado de cambios del workout.
+- Sincronización del workout activo cuando se edita la rutina usada ese día.
+- Temporizador de descanso opcional con sonidos configurables.
+- Historial de entrenamientos.
+- Medidas corporales personalizables.
+- Estadísticas básicas de progreso.
+- Importación/exportación de datos.
+- PWA instalable con soporte offline mediante Service Worker.
 
-## Expanding the ESLint configuration
+## Stack tecnológico
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- React 19
+- Vite 8
+- Tailwind CSS 4
+- Dexie / IndexedDB
+- React Router
+- Recharts
+- i18next
+- Node test runner (`node:test`)
+
+## Instalación
+
+```bash
+npm install
+```
+
+## Desarrollo
+
+```bash
+npm run dev
+```
+
+## Tests
+
+```bash
+npm test
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Lint
+
+```bash
+npm run lint
+```
+
+> Nota: actualmente el lint puede mostrar errores heredados de reglas React Hooks/Fast Refresh en partes antiguas de la app. El build y los tests unitarios del sync de rutinas pasan.
+
+## Uso básico
+
+1. Crea rutinas desde la pestaña **Rutinas**.
+2. Asigna cada rutina a un día de la semana.
+3. En **Hoy**, registra tus series.
+4. Los cambios se guardan automáticamente.
+5. Revisa entrenamientos anteriores en **Historial**.
+6. Configura medidas, idioma, temporizador y datos en **Perfil**.
+
+## Persistencia de datos
+
+Los datos se guardan localmente en IndexedDB. No hay backend ni sincronización entre dispositivos todavía. Puedes exportar/importar un backup JSON desde ajustes.
+
+## Estructura relevante
+
+```text
+src/
+  components/       Componentes compartidos
+  context/          Contextos React
+  db/               Dexie schema y seed inicial
+  i18n/             Traducciones
+  pages/            Pantallas principales
+  utils/            Lógica testeable
+public/
+  sw.js             Service Worker
+  manifest.json     Manifest PWA
+```
+
+## Limitaciones conocidas
+
+- Datos locales por dispositivo.
+- Sin multiusuario ni backend.
+- Lint heredado pendiente de limpiar.
+- El bundle principal supera 500KB minificado; se podría dividir con lazy loading.
+
+## Roadmap
+
+- Autenticación y sincronización cloud.
+- Mejoras de estadísticas.
+- Limpieza completa de lint.
+- Code splitting por rutas.

@@ -5,6 +5,7 @@ import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
 import { useTimer } from '../context/TimerContext';
+import { applyAutoFinishedAt, createSetsFromRoutineExercise, syncWorkoutExercises } from '../utils/workoutSync';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)
 function getTodayDow() {
@@ -46,7 +47,7 @@ export default function HomePage() {
 
       // Cargar info de ejercicios
       const ids = r.exercises.map(e => e.exerciseId);
-      const exs = await db.exercises.where('id').anyOf(ids).toArray();
+      const exs = ids.length > 0 ? await db.exercises.where('id').anyOf(ids).toArray() : [];
       const map = {};
       exs.forEach(e => { map[e.id] = e; });
       setExerciseInfoMap(map);
@@ -75,41 +76,23 @@ export default function HomePage() {
         .first();
 
       if (existing) {
-        setWorkoutData(existing);
+        const synced = applyAutoFinishedAt({
+          ...existing,
+          exercises: syncWorkoutExercises(r.exercises, existing.exercises, prevMap),
+        });
+        await db.workouts.put(synced);
+        setWorkoutData(synced);
       } else {
         // Crear workout pre-rellenado con datos anteriores
         const newWorkout = {
           id: uuidv4(),
           date: Date.now(),
           routineId: r.id,
-          exercises: r.exercises.map(ex => {
-            const prev = prevMap[ex.exerciseId];
-            const targetSets = ex.targetSets || 3;
-            let sets;
-            if (prev?.sets?.length > 0) {
-              // Pre-rellenar con datos de la última sesión
-              sets = prev.sets.map(s => ({
-                weight: s.weight,
-                reps: s.reps,
-                duration: s.duration,
-                completed: false,
-              }));
-              // Ajustar al número de series objetivo si difiere
-              while (sets.length < targetSets) {
-                const last = sets[sets.length - 1];
-                sets.push({ ...last, completed: false });
-              }
-            } else {
-              // Usar los valores objetivo de la rutina como fallback
-              sets = Array.from({ length: targetSets }, () => ({
-                weight: ex.targetWeight ?? null,
-                reps: ex.targetReps ?? null,
-                duration: ex.targetDuration ?? null,
-                completed: false,
-              }));
-            }
-            return { exerciseId: ex.exerciseId, notes: null, sets };
-          }),
+          exercises: r.exercises.map(ex => ({
+            exerciseId: ex.exerciseId,
+            notes: null,
+            sets: createSetsFromRoutineExercise(ex, prevMap[ex.exerciseId]),
+          })),
           finishedAt: null,
         };
         await db.workouts.add(newWorkout);
@@ -121,13 +104,7 @@ export default function HomePage() {
   }, []);
 
   const updateWorkout = async (updated) => {
-    // Auto-guardar: marcar finishedAt si hay alguna serie completada
-    const hasCompleted = updated.exercises.some(ex => ex.sets.some(s => s.completed));
-    if (hasCompleted && !updated.finishedAt) {
-      updated = { ...updated, finishedAt: Date.now() };
-    } else if (!hasCompleted && updated.finishedAt) {
-      updated = { ...updated, finishedAt: null };
-    }
+    updated = applyAutoFinishedAt(updated);
     setWorkoutData(updated);
     await db.workouts.put(updated);
     // Feedback visual
@@ -176,28 +153,11 @@ export default function HomePage() {
       id: uuidv4(),
       date: Date.now(),
       routineId: routine.id,
-      exercises: routine.exercises.map(ex => {
-        const prev = previousDataMap[ex.exerciseId];
-        const targetSets = ex.targetSets || 3;
-        let sets;
-        if (prev?.sets?.length > 0) {
-          sets = prev.sets.map(s => ({
-            weight: s.weight, reps: s.reps, duration: s.duration, completed: false,
-          }));
-          while (sets.length < targetSets) {
-            const last = sets[sets.length - 1];
-            sets.push({ ...last, completed: false });
-          }
-        } else {
-          sets = Array.from({ length: targetSets }, () => ({
-            weight: ex.targetWeight ?? null,
-            reps: ex.targetReps ?? null,
-            duration: ex.targetDuration ?? null,
-            completed: false,
-          }));
-        }
-        return { exerciseId: ex.exerciseId, notes: null, sets };
-      }),
+      exercises: routine.exercises.map(ex => ({
+        exerciseId: ex.exerciseId,
+        notes: null,
+        sets: createSetsFromRoutineExercise(ex, previousDataMap[ex.exerciseId]),
+      })),
       finishedAt: null,
     };
     await db.workouts.add(newWorkout);
