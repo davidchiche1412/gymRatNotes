@@ -1,237 +1,36 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/database';
 import Modal from '../components/Modal';
-import { useModal } from '../hooks/useModal';
-import { useTimer } from '../context/useTimer';
-import {
-  WORKOUT_STATUS,
-  applyUserChangeStatus,
-  createPrefilledExercises,
-  createSetsFromRoutineExercise,
-  createWorkoutExercisesFromRoutine,
-  finalizeWorkout,
-  getWorkoutStatus,
-  syncPrefilledExercises,
-  syncWorkoutExercises,
-} from '../utils/workoutSync';
-
-// Día de la semana: 0=Lunes ... 6=Domingo (ISO)
-function getTodayDow() {
-  const jsDay = new Date().getDay(); // 0=Dom, 1=Lun...
-  return jsDay === 0 ? 6 : jsDay - 1;
-}
+import DayOff from '../components/DayOff';
+import Loading from '../components/Loading';
+import { useTodayWorkout } from '../hooks/useTodayWorkout';
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
-  const { modal, confirm } = useModal();
-  const { startTimer } = useTimer();
-  const [routine, setRoutine] = useState(null);
-  const [exerciseInfoMap, setExerciseInfoMap] = useState({});
-  const [workoutData, setWorkoutData] = useState(null);
-  const [previousDataMap, setPreviousDataMap] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [showSaved, setShowSaved] = useState(false);
-  const savedTimeout = useRef(null);
-  const workoutRef = useRef(null);
-  const writeQueue = useRef(Promise.resolve());
+  const {
+    loading,
+    modal,
+    todayWorkout,
+    totalSets,
+    completedSets,
+    progress,
+    saveDisabled,
+    saveButtonText,
+    showSaved,
+    handleSaveWorkout,
+    handleSetChange,
+    handleToggleComplete,
+    handleResetWorkout,
+  } = useTodayWorkout();
 
   const getExName = useCallback((ex) => {
     if (!ex) return '';
     return i18n.language === 'en' && ex.nameEN ? ex.nameEN : ex.name;
   }, [i18n.language]);
 
-  // Cargar rutina del día, info de ejercicios y datos anteriores
-  useEffect(() => {
-    const load = async () => {
-      const dow = getTodayDow();
-      const schedule = await db.weeklySchedule.where('dayOfWeek').equals(dow).first();
+  if (loading) { return <Loading />; }
 
-      if (!schedule?.routineId) {
-        setLoading(false);
-        return;
-      }
-
-      const r = await db.routines.get(schedule.routineId);
-      if (!r) { setLoading(false); return; }
-      setRoutine(r);
-
-      // Cargar info de ejercicios
-      const ids = r.exercises.map(e => e.exerciseId);
-      const exs = ids.length > 0 ? await db.exercises.where('id').anyOf(ids).toArray() : [];
-      const map = {};
-      exs.forEach(e => { map[e.id] = e; });
-      setExerciseInfoMap(map);
-
-      // Cargar datos anteriores (último workout finalizado que contenga cada ejercicio)
-      const prevWorkouts = await db.workouts.where('finishedAt').above(0).reverse().toArray();
-      const prevMap = {};
-      for (const ex of r.exercises) {
-        for (const pw of prevWorkouts) {
-          const prevEx = pw.exercises.find(e => e.exerciseId === ex.exerciseId);
-          if (prevEx) {
-            prevMap[ex.exerciseId] = prevEx;
-            break;
-          }
-        }
-      }
-      setPreviousDataMap(prevMap);
-
-      // Comprobar si ya hay un workout de hoy sin finalizar
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const existing = await db.workouts
-        .where('date')
-        .aboveOrEqual(todayStart.getTime())
-        .filter(w => w.routineId === r.id)
-        .first();
-
-      if (existing) {
-        const synced = {
-          ...existing,
-          exercises: syncWorkoutExercises(r.exercises, existing.exercises, prevMap),
-          prefilledExercises: syncPrefilledExercises(r.exercises, existing.prefilledExercises || existing.exercises, prevMap),
-        };
-        synced.status = synced.status || getWorkoutStatus(synced);
-        await db.workouts.put(synced);
-        workoutRef.current = synced;
-        setWorkoutData(synced);
-      } else {
-        const exercises = createWorkoutExercisesFromRoutine(r.exercises, prevMap);
-        // Crear workout pre-rellenado con datos anteriores
-        const newWorkout = {
-          id: uuidv4(),
-          date: Date.now(),
-          routineId: r.id,
-          status: WORKOUT_STATUS.NOT_STARTED,
-          exercises,
-          prefilledExercises: createPrefilledExercises(exercises),
-          finishedAt: null,
-        };
-        await db.workouts.add(newWorkout);
-        workoutRef.current = newWorkout;
-        setWorkoutData(newWorkout);
-      }
-      setLoading(false);
-    };
-    load();
-  }, []);
-
-  const updateWorkout = async (updated) => {
-    updated = applyUserChangeStatus(updated, workoutRef.current?.status);
-    workoutRef.current = updated;
-    setWorkoutData(updated);
-    const snapshot = structuredClone(updated);
-    writeQueue.current = writeQueue.current.then(() => db.workouts.put(snapshot));
-    await writeQueue.current;
-    // Feedback visual
-    setShowSaved(true);
-    clearTimeout(savedTimeout.current);
-    savedTimeout.current = setTimeout(() => setShowSaved(false), 2000);
-  };
-
-  const handleSaveWorkout = async () => {
-    if (!workoutRef.current) return;
-    if (
-      workoutRef.current.status === WORKOUT_STATUS.NOT_STARTED
-      || workoutRef.current.status === WORKOUT_STATUS.FINISHED
-    ) return;
-    const savedWorkout = finalizeWorkout(workoutRef.current);
-    workoutRef.current = savedWorkout;
-    setWorkoutData(savedWorkout);
-    const snapshot = structuredClone(savedWorkout);
-    writeQueue.current = writeQueue.current.then(() => db.workouts.put(snapshot));
-    await writeQueue.current;
-    setShowSaved(false);
-  };
-
-  const handleSetChange = (exIdx, setIdx, field, value) => {
-    const current = workoutRef.current;
-    if (!current) return;
-    const exercises = [...current.exercises];
-    const sets = [...exercises[exIdx].sets];
-    sets[setIdx] = { ...sets[setIdx], [field]: value === '' ? null : Number(value), completed: false };
-    exercises[exIdx] = { ...exercises[exIdx], sets };
-    updateWorkout({ ...current, exercises });
-  };
-
-  const handleToggleComplete = (exIdx, setIdx) => {
-    const current = workoutRef.current;
-    if (!current) return;
-    const exercises = [...current.exercises];
-    const sets = [...exercises[exIdx].sets];
-    const wasCompleted = sets[setIdx].completed;
-    sets[setIdx] = { ...sets[setIdx], completed: !wasCompleted };
-    exercises[exIdx] = { ...exercises[exIdx], sets };
-    updateWorkout({ ...current, exercises });
-
-    // Iniciar timer al marcar como completada
-    if (!wasCompleted && routine) {
-      const restTime = routine.restTime ?? 60;
-      startTimer(restTime);
-    }
-  };
-
-  const handleResetWorkout = async () => {
-    if (!workoutData) return;
-    const ok = await confirm({
-      title: t('today.resetWorkout'),
-      message: t('today.confirmReset'),
-      confirmText: t('common.confirm'),
-      cancelText: t('common.cancel'),
-    });
-    if (!ok) return;
-    await db.workouts.delete(workoutData.id);
-    // Recrear workout limpio pre-rellenado
-    const newWorkout = {
-      id: uuidv4(),
-      date: Date.now(),
-      routineId: routine.id,
-      status: WORKOUT_STATUS.NOT_STARTED,
-      exercises: routine.exercises.map(ex => ({
-        exerciseId: ex.exerciseId,
-        notes: null,
-        sets: createSetsFromRoutineExercise(ex, previousDataMap[ex.exerciseId]),
-      })),
-      finishedAt: null,
-    };
-    newWorkout.prefilledExercises = createPrefilledExercises(newWorkout.exercises);
-    await db.workouts.add(newWorkout);
-    workoutRef.current = newWorkout;
-    setWorkoutData(newWorkout);
-  };
-
-  const totalSets = workoutData?.exercises?.reduce((sum, ex) => sum + ex.sets.length, 0) || 0;
-  const completedSets = workoutData?.exercises?.reduce(
-    (sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0
-  ) || 0;
-  const progress = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
-  const saveDisabled = !workoutData
-    || workoutData.status === WORKOUT_STATUS.NOT_STARTED
-    || workoutData.status === WORKOUT_STATUS.FINISHED;
-  const saveButtonText = workoutData?.status === WORKOUT_STATUS.FINISHED
-    ? t('today.savedWorkout')
-    : t('today.saveWorkout');
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  // Día de descanso
-  if (!routine) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh] px-6 text-center">
-        <span className="text-5xl mb-4">😴</span>
-        <h1 className="text-xl font-bold mb-2">{t('today.restDay')}</h1>
-        <p className="text-text-secondary text-sm">{t('today.restDayMessage')}</p>
-      </div>
-    );
-  }
+  if (!todayWorkout) { return <DayOff />; }
 
   return (
     <div className="max-w-lg mx-auto flex flex-col">
@@ -239,8 +38,8 @@ export default function HomePage() {
       <div className="sticky top-0 z-40 bg-bg px-4 pt-4 pb-3">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-xs text-text-secondary">{t(`days.${getTodayDow()}`)}</p>
-            <h1 className="text-lg font-bold">{routine.name}</h1>
+            <p className="text-xs text-text-secondary">{t(`days.${todayWorkout.dayOfWeek}`)}</p>
+            <h1 className="text-lg font-bold">{todayWorkout.routineName}</h1>
           </div>
           <button
               onClick={handleResetWorkout}
@@ -261,8 +60,7 @@ export default function HomePage() {
 
       {/* Ejercicios */}
       <div className="px-3 pb-4 space-y-3">
-        {workoutData?.exercises?.map((exData, exIdx) => {
-          const exInfo = exerciseInfoMap[exData.exerciseId];
+        {todayWorkout.exercises.map((exData, exIdx) => {
           const allCompleted = exData.sets.every(s => s.completed);
 
           return (
@@ -278,25 +76,25 @@ export default function HomePage() {
               <div className="px-4 pt-3 pb-1">
                 <div className="flex items-center justify-between">
                   <h3 className={`font-semibold text-sm ${allCompleted ? 'text-primary' : ''}`}>
-                    {getExName(exInfo)}
+                    {getExName(exData)}
                   </h3>
                   {allCompleted && <span className="text-primary text-xs">✓</span>}
                 </div>
                 <p className="text-[11px] text-text-secondary">
-                  {exInfo && t(`exercises.muscleGroups.${exInfo.muscleGroup}`)}
+                  {exData.muscleGroup && t(`exercises.muscleGroups.${exData.muscleGroup}`)}
                 </p>
               </div>
 
               {/* Header de columnas */}
               <div className="flex items-center gap-2 px-4 py-1 text-[10px] text-text-secondary uppercase tracking-wider">
                 <span className="w-6 text-center">#</span>
-                {(exInfo?.type === 'weight' || exInfo?.type === 'bodyweight') && (
+                {(exData.type === 'weight' || exData.type === 'bodyweight') && (
                   <>
                     <span className="flex-1 text-center">{t('workout.weight')}</span>
                     <span className="flex-1 text-center">{t('workout.reps')}</span>
                   </>
                 )}
-                {exInfo?.type === 'timed' && (
+                {exData.type === 'timed' && (
                   <span className="flex-1 text-center">{t('workout.duration')}</span>
                 )}
                 <span className="w-10"></span>
@@ -310,7 +108,7 @@ export default function HomePage() {
                       set.completed ? 'text-primary' : 'text-text-secondary'
                     }`}>{si + 1}</span>
 
-                    {(exInfo?.type === 'weight' || exInfo?.type === 'bodyweight') && (
+                    {(exData.type === 'weight' || exData.type === 'bodyweight') && (
                       <>
                         <input
                           type="number"
@@ -340,7 +138,7 @@ export default function HomePage() {
                         />
                       </>
                     )}
-                    {exInfo?.type === 'timed' && (
+                    {exData.type === 'timed' && (
                       <input
                         type="number"
                         inputMode="numeric"
