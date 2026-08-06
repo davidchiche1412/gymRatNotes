@@ -17,6 +17,7 @@
     "allDone": "¡Entrenamiento completado!",
     "saveWorkout": "Guardar Entrenamiento",
     "saved": "Guardado",
+    "savedWorkout": "Entrenamiento Guardado",
     "autoSaved": "Guardado automáticamente",
     "resetWorkout": "Reiniciar",
     "confirmReset": "¿Reiniciar el entrenamiento? Se borrarán los datos de hoy."
@@ -45,7 +46,11 @@
     "exercises_one": "{{count}} ejercicio",
     "exercises_other": "{{count}} ejercicios",
     "deleteWorkout": "Eliminar entrenamiento",
-    "confirmDelete": "¿Eliminar este entrenamiento?"
+    "confirmDelete": "¿Eliminar este entrenamiento?",
+    "finishWorkout": "Finalizar entrenamiento",
+    "statusDraft": "Borrador",
+    "statusInProgress": "En progreso",
+    "statusFinished": "Finalizado"
   },
   "routines": {
     "title": "Rutinas",

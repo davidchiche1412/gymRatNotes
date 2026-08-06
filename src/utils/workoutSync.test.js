@@ -1,12 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  applyAutoFinishedAt,
   createSetsFromRoutineExercise,
+  createPrefilledExercises,
+  deriveWorkoutStatus,
   finalizeWorkout,
-  hasWorkoutProgress,
+  finishAllWorkoutSets,
+  getWorkoutStatus,
+  hasManualChanges,
   shouldShowWorkoutInHistory,
   syncWorkoutExercises,
+  WORKOUT_STATUS,
+  applyUserChangeStatus,
 } from './workoutSync.js';
 
 test('createSetsFromRoutineExercise uses routine targets when there is no previous data', () => {
@@ -61,25 +66,11 @@ test('syncWorkoutExercises trims sets when the routine target sets decrease', ()
   assert.deepEqual(synced[0].sets[0], { weight: 70, reps: 10, completed: true });
 });
 
-test('applyAutoFinishedAt reflects whether any set is completed', () => {
-  const finished = applyAutoFinishedAt({
-    exercises: [{ sets: [{ completed: true }] }],
-    finishedAt: null,
-  });
-  const alreadySaved = applyAutoFinishedAt({
-    exercises: [{ sets: [{ completed: false }] }],
-    finishedAt: 123,
-  });
-
-  assert.equal(typeof finished.finishedAt, 'number');
-  assert.equal(alreadySaved.finishedAt, 123);
-});
-
-test('hasWorkoutProgress detects typed values even without completed sets', () => {
-  assert.equal(hasWorkoutProgress({
+test('hasManualChanges detects typed values when there is no prefill baseline', () => {
+  assert.equal(hasManualChanges({
     exercises: [{ sets: [{ weight: 80, reps: null, duration: null, completed: false }] }],
   }), true);
-  assert.equal(hasWorkoutProgress({
+  assert.equal(hasManualChanges({
     exercises: [{ sets: [{ weight: null, reps: null, duration: null, completed: false }] }],
   }), false);
 });
@@ -102,4 +93,51 @@ test('shouldShowWorkoutInHistory includes drafts with progress', () => {
     finishedAt: 123,
     exercises: [{ sets: [{ weight: null, reps: null, duration: null, completed: false }] }],
   }), true);
+});
+
+test('deriveWorkoutStatus keeps prefilled workouts hidden until user interaction', () => {
+  const workout = {
+    exercises: [{ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, duration: null, completed: false }] }],
+  };
+  workout.prefilledExercises = createPrefilledExercises(workout.exercises);
+
+  assert.equal(deriveWorkoutStatus(workout), WORKOUT_STATUS.NOT_STARTED);
+  assert.equal(shouldShowWorkoutInHistory({ ...workout, status: deriveWorkoutStatus(workout) }), false);
+});
+
+test('deriveWorkoutStatus moves from draft to in_progress by completed sets', () => {
+  const workout = {
+    exercises: [{ exerciseId: 'bench', sets: [{ weight: 85, reps: 8, duration: null, completed: false }] }],
+    prefilledExercises: [{ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, duration: null }] }],
+  };
+
+  assert.equal(deriveWorkoutStatus(workout), WORKOUT_STATUS.DRAFT);
+  assert.equal(deriveWorkoutStatus({
+    ...workout,
+    exercises: [{ exerciseId: 'bench', sets: [{ weight: 85, reps: 8, duration: null, completed: true }] }],
+  }), WORKOUT_STATUS.IN_PROGRESS);
+});
+
+test('finished workouts are disabled until edited and history can finish all sets', () => {
+  const finished = finalizeWorkout({ exercises: [{ sets: [{ completed: false }] }], finishedAt: null });
+  const allFinished = finishAllWorkoutSets({
+    exercises: [{ sets: [{ completed: false }, { completed: false }] }],
+    finishedAt: null,
+  });
+
+  assert.equal(getWorkoutStatus(finished), WORKOUT_STATUS.FINISHED);
+  assert.deepEqual(allFinished.exercises[0].sets.map(s => s.completed), [true, true]);
+  assert.equal(getWorkoutStatus(allFinished), WORKOUT_STATUS.FINISHED);
+});
+
+test('applyUserChangeStatus moves finished workouts back to in_progress', () => {
+  const updated = applyUserChangeStatus({
+    status: WORKOUT_STATUS.FINISHED,
+    finishedAt: 123,
+    exercises: [{ sets: [{ completed: false, weight: 90, reps: 8, duration: null }] }],
+    prefilledExercises: [{ sets: [{ weight: 80, reps: 8, duration: null }] }],
+  }, WORKOUT_STATUS.FINISHED);
+
+  assert.equal(updated.status, WORKOUT_STATUS.IN_PROGRESS);
+  assert.equal(updated.finishedAt, null);
 });

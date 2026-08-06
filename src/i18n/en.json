@@ -17,6 +17,7 @@
     "allDone": "Workout completed!",
     "saveWorkout": "Save Workout",
     "saved": "Saved",
+    "savedWorkout": "Workout Saved",
     "autoSaved": "Auto-saved",
     "resetWorkout": "Reset",
     "confirmReset": "Reset the workout? Today's data will be cleared."
@@ -45,7 +46,11 @@
     "exercises_one": "{{count}} exercise",
     "exercises_other": "{{count}} exercises",
     "deleteWorkout": "Delete workout",
-    "confirmDelete": "Delete this workout?"
+    "confirmDelete": "Delete this workout?",
+    "finishWorkout": "Finish workout",
+    "statusDraft": "Draft",
+    "statusInProgress": "In progress",
+    "statusFinished": "Finished"
   },
   "routines": {
     "title": "Routines",

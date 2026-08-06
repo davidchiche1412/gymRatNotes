@@ -7,12 +7,27 @@ function buildFallbackSet(routineExercise) {
   };
 }
 
+export const WORKOUT_STATUS = {
+  NOT_STARTED: 'not_started',
+  DRAFT: 'draft',
+  IN_PROGRESS: 'in_progress',
+  FINISHED: 'finished',
+};
+
 function cloneSetAsPending(set) {
   return {
     weight: set.weight,
     reps: set.reps,
     duration: set.duration,
     completed: false,
+  };
+}
+
+function cloneSetData(set) {
+  return {
+    weight: set.weight ?? null,
+    reps: set.reps ?? null,
+    duration: set.duration ?? null,
   };
 }
 
@@ -29,6 +44,21 @@ export function createSetsFromRoutineExercise(routineExercise, previousExercise)
   }
 
   return Array.from({ length: targetSets }, () => buildFallbackSet(routineExercise));
+}
+
+export function createWorkoutExercisesFromRoutine(routineExercises, previousDataMap = {}) {
+  return routineExercises.map(ex => ({
+    exerciseId: ex.exerciseId,
+    notes: null,
+    sets: createSetsFromRoutineExercise(ex, previousDataMap[ex.exerciseId]),
+  }));
+}
+
+export function createPrefilledExercises(exercises) {
+  return exercises.map(ex => ({
+    exerciseId: ex.exerciseId,
+    sets: ex.sets.map(cloneSetData),
+  }));
 }
 
 export function syncWorkoutExercises(routineExercises, workoutExercises = [], previousDataMap = {}) {
@@ -57,22 +87,64 @@ export function syncWorkoutExercises(routineExercises, workoutExercises = [], pr
   });
 }
 
-export function applyAutoFinishedAt(workout) {
-  const hasCompleted = workout.exercises.some(ex => ex.sets.some(s => s.completed));
-  if (hasCompleted && !workout.finishedAt) return { ...workout, finishedAt: Date.now() };
-  return workout;
+export function syncPrefilledExercises(routineExercises, workoutExercises = [], previousDataMap = {}) {
+  return createPrefilledExercises(syncWorkoutExercises(routineExercises, workoutExercises, previousDataMap));
 }
 
-export function hasWorkoutProgress(workout) {
-  return workout.exercises.some(ex => ex.sets.some(s =>
-    s.completed || s.weight != null || s.reps != null || s.duration != null
-  ));
+export function hasCompletedSets(workout) {
+  return workout.exercises.some(ex => ex.sets.some(s => s.completed));
+}
+
+export function hasManualChanges(workout) {
+  if (!workout.prefilledExercises) {
+    return workout.exercises.some(ex => ex.sets.some(s =>
+      s.weight != null || s.reps != null || s.duration != null
+    ));
+  }
+
+  return workout.exercises.some(ex => {
+    const prefilledExercise = workout.prefilledExercises.find(prefill => prefill.exerciseId === ex.exerciseId);
+    return ex.sets.some((set, index) => {
+      const prefilledSet = prefilledExercise?.sets?.[index] || {};
+      return set.weight !== (prefilledSet.weight ?? null)
+        || set.reps !== (prefilledSet.reps ?? null)
+        || set.duration !== (prefilledSet.duration ?? null);
+    });
+  });
+}
+
+export function deriveWorkoutStatus(workout) {
+  if (workout.status === WORKOUT_STATUS.FINISHED) return WORKOUT_STATUS.FINISHED;
+  if (hasCompletedSets(workout)) return WORKOUT_STATUS.IN_PROGRESS;
+  if (hasManualChanges(workout)) return WORKOUT_STATUS.DRAFT;
+  return WORKOUT_STATUS.NOT_STARTED;
+}
+
+export function getWorkoutStatus(workout) {
+  if (workout.status) return workout.status;
+  if (workout.finishedAt > 0) return WORKOUT_STATUS.FINISHED;
+  return deriveWorkoutStatus(workout);
+}
+
+export function applyUserChangeStatus(workout, previousStatus = workout.status) {
+  if (previousStatus === WORKOUT_STATUS.FINISHED) {
+    return { ...workout, status: WORKOUT_STATUS.IN_PROGRESS, finishedAt: null };
+  }
+  return { ...workout, status: deriveWorkoutStatus(workout), finishedAt: null };
 }
 
 export function shouldShowWorkoutInHistory(workout) {
-  return workout.finishedAt > 0 || hasWorkoutProgress(workout);
+  return getWorkoutStatus(workout) !== WORKOUT_STATUS.NOT_STARTED;
 }
 
 export function finalizeWorkout(workout) {
-  return { ...workout, finishedAt: Date.now() };
+  return { ...workout, status: WORKOUT_STATUS.FINISHED, finishedAt: Date.now() };
+}
+
+export function finishAllWorkoutSets(workout) {
+  const exercises = workout.exercises.map(ex => ({
+    ...ex,
+    sets: ex.sets.map(set => ({ ...set, completed: true })),
+  }));
+  return finalizeWorkout({ ...workout, exercises });
 }

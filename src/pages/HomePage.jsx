@@ -5,7 +5,17 @@ import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
 import { useTimer } from '../context/useTimer';
-import { applyAutoFinishedAt, createSetsFromRoutineExercise, finalizeWorkout, syncWorkoutExercises } from '../utils/workoutSync';
+import {
+  WORKOUT_STATUS,
+  applyUserChangeStatus,
+  createPrefilledExercises,
+  createSetsFromRoutineExercise,
+  createWorkoutExercisesFromRoutine,
+  finalizeWorkout,
+  getWorkoutStatus,
+  syncPrefilledExercises,
+  syncWorkoutExercises,
+} from '../utils/workoutSync';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)
 function getTodayDow() {
@@ -23,7 +33,6 @@ export default function HomePage() {
   const [previousDataMap, setPreviousDataMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [showSaved, setShowSaved] = useState(false);
-  const [manualSaved, setManualSaved] = useState(false);
   const savedTimeout = useRef(null);
   const workoutRef = useRef(null);
   const writeQueue = useRef(Promise.resolve());
@@ -79,24 +88,25 @@ export default function HomePage() {
         .first();
 
       if (existing) {
-        const synced = applyAutoFinishedAt({
+        const synced = {
           ...existing,
           exercises: syncWorkoutExercises(r.exercises, existing.exercises, prevMap),
-        });
+          prefilledExercises: syncPrefilledExercises(r.exercises, existing.prefilledExercises || existing.exercises, prevMap),
+        };
+        synced.status = synced.status || getWorkoutStatus(synced);
         await db.workouts.put(synced);
         workoutRef.current = synced;
         setWorkoutData(synced);
       } else {
+        const exercises = createWorkoutExercisesFromRoutine(r.exercises, prevMap);
         // Crear workout pre-rellenado con datos anteriores
         const newWorkout = {
           id: uuidv4(),
           date: Date.now(),
           routineId: r.id,
-          exercises: r.exercises.map(ex => ({
-            exerciseId: ex.exerciseId,
-            notes: null,
-            sets: createSetsFromRoutineExercise(ex, prevMap[ex.exerciseId]),
-          })),
+          status: WORKOUT_STATUS.NOT_STARTED,
+          exercises,
+          prefilledExercises: createPrefilledExercises(exercises),
           finishedAt: null,
         };
         await db.workouts.add(newWorkout);
@@ -109,7 +119,7 @@ export default function HomePage() {
   }, []);
 
   const updateWorkout = async (updated) => {
-    updated = applyAutoFinishedAt(updated);
+    updated = applyUserChangeStatus(updated, workoutRef.current?.status);
     workoutRef.current = updated;
     setWorkoutData(updated);
     const snapshot = structuredClone(updated);
@@ -117,20 +127,22 @@ export default function HomePage() {
     await writeQueue.current;
     // Feedback visual
     setShowSaved(true);
-    setManualSaved(false);
     clearTimeout(savedTimeout.current);
     savedTimeout.current = setTimeout(() => setShowSaved(false), 2000);
   };
 
   const handleSaveWorkout = async () => {
     if (!workoutRef.current) return;
+    if (
+      workoutRef.current.status === WORKOUT_STATUS.NOT_STARTED
+      || workoutRef.current.status === WORKOUT_STATUS.FINISHED
+    ) return;
     const savedWorkout = finalizeWorkout(workoutRef.current);
     workoutRef.current = savedWorkout;
     setWorkoutData(savedWorkout);
     const snapshot = structuredClone(savedWorkout);
     writeQueue.current = writeQueue.current.then(() => db.workouts.put(snapshot));
     await writeQueue.current;
-    setManualSaved(true);
     setShowSaved(false);
   };
 
@@ -139,7 +151,7 @@ export default function HomePage() {
     if (!current) return;
     const exercises = [...current.exercises];
     const sets = [...exercises[exIdx].sets];
-    sets[setIdx] = { ...sets[setIdx], [field]: value === '' ? null : Number(value) };
+    sets[setIdx] = { ...sets[setIdx], [field]: value === '' ? null : Number(value), completed: false };
     exercises[exIdx] = { ...exercises[exIdx], sets };
     updateWorkout({ ...current, exercises });
   };
@@ -176,6 +188,7 @@ export default function HomePage() {
       id: uuidv4(),
       date: Date.now(),
       routineId: routine.id,
+      status: WORKOUT_STATUS.NOT_STARTED,
       exercises: routine.exercises.map(ex => ({
         exerciseId: ex.exerciseId,
         notes: null,
@@ -183,6 +196,7 @@ export default function HomePage() {
       })),
       finishedAt: null,
     };
+    newWorkout.prefilledExercises = createPrefilledExercises(newWorkout.exercises);
     await db.workouts.add(newWorkout);
     workoutRef.current = newWorkout;
     setWorkoutData(newWorkout);
@@ -193,6 +207,12 @@ export default function HomePage() {
     (sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0
   ) || 0;
   const progress = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+  const saveDisabled = !workoutData
+    || workoutData.status === WORKOUT_STATUS.NOT_STARTED
+    || workoutData.status === WORKOUT_STATUS.FINISHED;
+  const saveButtonText = workoutData?.status === WORKOUT_STATUS.FINISHED
+    ? t('today.savedWorkout')
+    : t('today.saveWorkout');
 
   if (loading) {
     return (
@@ -362,9 +382,10 @@ export default function HomePage() {
         )}
         <button
           onClick={handleSaveWorkout}
-          className="w-full mt-3 py-3.5 bg-primary text-white rounded-xl text-base font-semibold hover:bg-primary-dark active:scale-[0.98] transition-all"
+          disabled={saveDisabled}
+          className="w-full mt-3 py-3.5 bg-primary text-white rounded-xl text-base font-semibold hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:bg-primary"
         >
-          {manualSaved ? `✓ ${t('today.saved')}` : t('today.saveWorkout')}
+          {saveButtonText}
         </button>
       </div>
 

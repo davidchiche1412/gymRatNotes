@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
-import { shouldShowWorkoutInHistory } from '../utils/workoutSync';
+import { WORKOUT_STATUS, finishAllWorkoutSets, getWorkoutStatus, shouldShowWorkoutInHistory } from '../utils/workoutSync';
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation();
@@ -61,6 +61,12 @@ export default function HistoryPage() {
     loadWorkouts();
   };
 
+  const handleFinishWorkout = async (workout) => {
+    const finished = finishAllWorkoutSets(workout);
+    await db.workouts.put(finished);
+    loadWorkouts();
+  };
+
   const formatDate = (ts) => {
     return new Date(ts).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', {
       weekday: 'short',
@@ -85,6 +91,13 @@ export default function HistoryPage() {
     return [...groups].join(', ');
   };
 
+  const getStatusBadge = (workout) => {
+    const status = getWorkoutStatus(workout);
+    if (status === WORKOUT_STATUS.FINISHED) return { text: t('history.statusFinished'), className: 'text-green-500 bg-green-500/10' };
+    if (status === WORKOUT_STATUS.IN_PROGRESS) return { text: t('history.statusInProgress'), className: 'text-primary bg-primary/10' };
+    return { text: t('history.statusDraft'), className: 'text-warning bg-warning/10' };
+  };
+
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-xl font-bold mb-4">{t('history.title')}</h1>
@@ -95,7 +108,10 @@ export default function HistoryPage() {
         </p>
       ) : (
         <div className="space-y-2">
-          {workouts.map(w => (
+          {workouts.map(w => {
+            const badge = getStatusBadge(w);
+            const status = getWorkoutStatus(w);
+            return (
             <div key={w.id} className="bg-surface rounded-xl border border-border overflow-hidden">
               <button
                 onClick={() => setExpandedId(expandedId === w.id ? null : w.id)}
@@ -108,6 +124,9 @@ export default function HistoryPage() {
                       {t('history.exercises', { count: w.exercises.length })}
                     </p>
                     <p className="text-xs text-primary mt-0.5">{getMuscleGroups(w)}</p>
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${badge.className}`}>
+                      {badge.text}
+                    </span>
                   </div>
                   <span className="text-text-secondary text-xs">{expandedId === w.id ? '▲' : '▼'}</span>
                 </div>
@@ -132,16 +151,25 @@ export default function HistoryPage() {
                       </div>
                     </div>
                   ))}
+                  {status !== WORKOUT_STATUS.FINISHED && (
+                    <button
+                      onClick={() => handleFinishWorkout(w)}
+                      className="text-primary text-xs mt-2 mr-3"
+                    >
+                      {t('history.finishWorkout')}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(w.id)}
-                    className="text-danger text-xs mt-1"
+                    className="text-danger text-xs mt-2"
                   >
                     {t('history.deleteWorkout')}
                   </button>
                 </div>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
       <Modal {...modal} />

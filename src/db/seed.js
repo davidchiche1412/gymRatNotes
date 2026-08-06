@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './database';
-import { hasWorkoutProgress } from '../utils/workoutSync';
+import { getWorkoutStatus, shouldShowWorkoutInHistory } from '../utils/workoutSync';
 
 const defaultExercises = [
   // === PECHO (Push) ===
@@ -329,11 +329,11 @@ export async function recoverPastWorkoutDrafts() {
   const drafts = await db.workouts
     .where('finishedAt')
     .equals(null)
-    .filter(w => w.date < todayStart.getTime() && hasWorkoutProgress(w))
+    .filter(w => w.date < todayStart.getTime() && shouldShowWorkoutInHistory(w))
     .toArray();
 
   for (const workout of drafts) {
-    await db.workouts.update(workout.id, { finishedAt: workout.date });
+    await db.workouts.update(workout.id, { status: getWorkoutStatus(workout) });
   }
 }
 

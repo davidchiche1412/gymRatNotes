@@ -71,6 +71,37 @@ El lint debe pasar antes de dar una tarea por finalizada.
 5. Revisa entrenamientos anteriores en **Historial**.
 6. Configura medidas, idioma, temporizador y datos en **Perfil**.
 
+## Flujo de estado de entrenamientos
+
+```mermaid
+stateDiagram-v2
+  [*] --> NOT_STARTED: abrir rutina del día
+
+  NOT_STARTED --> DRAFT: editar peso/reps/duración
+  NOT_STARTED --> IN_PROGRESS: marcar 1+ serie ✓
+
+  DRAFT --> NOT_STARTED: revertir todos los cambios
+  DRAFT --> IN_PROGRESS: marcar 1+ serie ✓
+  DRAFT --> FINISHED: pulsar Guardar
+
+  IN_PROGRESS --> DRAFT: desmarcar/modificar hasta 0 series ✓
+  IN_PROGRESS --> FINISHED: pulsar Guardar
+
+  FINISHED --> IN_PROGRESS: editar peso/reps/duración o desmarcar serie
+```
+
+- `not_started`: rutina precargada, no aparece en historial y el botón guardar está deshabilitado.
+- `draft`: hay cambios manuales, 0 series completadas, aparece como borrador y se auto-guarda.
+- `in_progress`: hay 1+ series completadas, aparece como en progreso y se auto-guarda.
+- `finished`: estado explícito tras pulsar **Guardar Entrenamiento**; el botón muestra **Entrenamiento Guardado** y queda deshabilitado hasta que se edite algo.
+
+Reglas clave:
+
+- Cualquier cambio del usuario se auto-guarda técnicamente en IndexedDB.
+- Solo `draft`, `in_progress` y `finished` aparecen en historial.
+- Si editas una serie completada, esa serie se desmarca automáticamente.
+- Si editas un entrenamiento `finished`, vuelve a `in_progress`.
+
 ## Persistencia de datos
 
 Los datos se guardan localmente en IndexedDB. No hay backend ni sincronización entre dispositivos todavía. Puedes exportar/importar un backup JSON desde ajustes.
