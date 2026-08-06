@@ -5,7 +5,7 @@ import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
 import { useTimer } from '../context/useTimer';
-import { applyAutoFinishedAt, createSetsFromRoutineExercise, syncWorkoutExercises } from '../utils/workoutSync';
+import { applyAutoFinishedAt, createSetsFromRoutineExercise, finalizeWorkout, syncWorkoutExercises } from '../utils/workoutSync';
 
 // Día de la semana: 0=Lunes ... 6=Domingo (ISO)
 function getTodayDow() {
@@ -23,7 +23,10 @@ export default function HomePage() {
   const [previousDataMap, setPreviousDataMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [showSaved, setShowSaved] = useState(false);
+  const [manualSaved, setManualSaved] = useState(false);
   const savedTimeout = useRef(null);
+  const workoutRef = useRef(null);
+  const writeQueue = useRef(Promise.resolve());
 
   const getExName = useCallback((ex) => {
     if (!ex) return '';
@@ -81,6 +84,7 @@ export default function HomePage() {
           exercises: syncWorkoutExercises(r.exercises, existing.exercises, prevMap),
         });
         await db.workouts.put(synced);
+        workoutRef.current = synced;
         setWorkoutData(synced);
       } else {
         // Crear workout pre-rellenado con datos anteriores
@@ -96,6 +100,7 @@ export default function HomePage() {
           finishedAt: null,
         };
         await db.workouts.add(newWorkout);
+        workoutRef.current = newWorkout;
         setWorkoutData(newWorkout);
       }
       setLoading(false);
@@ -105,31 +110,49 @@ export default function HomePage() {
 
   const updateWorkout = async (updated) => {
     updated = applyAutoFinishedAt(updated);
+    workoutRef.current = updated;
     setWorkoutData(updated);
-    await db.workouts.put(updated);
+    const snapshot = structuredClone(updated);
+    writeQueue.current = writeQueue.current.then(() => db.workouts.put(snapshot));
+    await writeQueue.current;
     // Feedback visual
     setShowSaved(true);
+    setManualSaved(false);
     clearTimeout(savedTimeout.current);
     savedTimeout.current = setTimeout(() => setShowSaved(false), 2000);
   };
 
+  const handleSaveWorkout = async () => {
+    if (!workoutRef.current) return;
+    const savedWorkout = finalizeWorkout(workoutRef.current);
+    workoutRef.current = savedWorkout;
+    setWorkoutData(savedWorkout);
+    const snapshot = structuredClone(savedWorkout);
+    writeQueue.current = writeQueue.current.then(() => db.workouts.put(snapshot));
+    await writeQueue.current;
+    setManualSaved(true);
+    setShowSaved(false);
+  };
+
   const handleSetChange = (exIdx, setIdx, field, value) => {
-    if (!workoutData) return;
-    const exercises = [...workoutData.exercises];
+    const current = workoutRef.current;
+    if (!current) return;
+    const exercises = [...current.exercises];
     const sets = [...exercises[exIdx].sets];
     sets[setIdx] = { ...sets[setIdx], [field]: value === '' ? null : Number(value) };
     exercises[exIdx] = { ...exercises[exIdx], sets };
-    updateWorkout({ ...workoutData, exercises });
+    updateWorkout({ ...current, exercises });
   };
 
   const handleToggleComplete = (exIdx, setIdx) => {
-    if (!workoutData) return;
-    const exercises = [...workoutData.exercises];
+    const current = workoutRef.current;
+    if (!current) return;
+    const exercises = [...current.exercises];
     const sets = [...exercises[exIdx].sets];
     const wasCompleted = sets[setIdx].completed;
     sets[setIdx] = { ...sets[setIdx], completed: !wasCompleted };
     exercises[exIdx] = { ...exercises[exIdx], sets };
-    updateWorkout({ ...workoutData, exercises });
+    updateWorkout({ ...current, exercises });
 
     // Iniciar timer al marcar como completada
     if (!wasCompleted && routine) {
@@ -161,6 +184,7 @@ export default function HomePage() {
       finishedAt: null,
     };
     await db.workouts.add(newWorkout);
+    workoutRef.current = newWorkout;
     setWorkoutData(newWorkout);
   };
 
@@ -336,6 +360,12 @@ export default function HomePage() {
             ✓ {t('today.autoSaved')}
           </p>
         )}
+        <button
+          onClick={handleSaveWorkout}
+          className="w-full mt-3 py-3.5 bg-primary text-white rounded-xl text-base font-semibold hover:bg-primary-dark active:scale-[0.98] transition-all"
+        >
+          {manualSaved ? `✓ ${t('today.saved')}` : t('today.saveWorkout')}
+        </button>
       </div>
 
       <Modal {...modal} />

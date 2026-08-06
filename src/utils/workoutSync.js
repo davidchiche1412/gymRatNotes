@@ -60,6 +60,15 @@ export function syncWorkoutExercises(routineExercises, workoutExercises = [], pr
 export function applyAutoFinishedAt(workout) {
   const hasCompleted = workout.exercises.some(ex => ex.sets.some(s => s.completed));
   if (hasCompleted && !workout.finishedAt) return { ...workout, finishedAt: Date.now() };
-  if (!hasCompleted && workout.finishedAt) return { ...workout, finishedAt: null };
   return workout;
+}
+
+export function hasWorkoutProgress(workout) {
+  return workout.exercises.some(ex => ex.sets.some(s =>
+    s.completed || s.weight != null || s.reps != null || s.duration != null
+  ));
+}
+
+export function finalizeWorkout(workout) {
+  return { ...workout, finishedAt: Date.now() };
 }

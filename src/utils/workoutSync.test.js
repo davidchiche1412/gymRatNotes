@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAutoFinishedAt, createSetsFromRoutineExercise, syncWorkoutExercises } from './workoutSync.js';
+import {
+  applyAutoFinishedAt,
+  createSetsFromRoutineExercise,
+  finalizeWorkout,
+  hasWorkoutProgress,
+  syncWorkoutExercises,
+} from './workoutSync.js';
 
 test('createSetsFromRoutineExercise uses routine targets when there is no previous data', () => {
   const sets = createSetsFromRoutineExercise({
@@ -59,11 +65,25 @@ test('applyAutoFinishedAt reflects whether any set is completed', () => {
     exercises: [{ sets: [{ completed: true }] }],
     finishedAt: null,
   });
-  const unfinished = applyAutoFinishedAt({
+  const alreadySaved = applyAutoFinishedAt({
     exercises: [{ sets: [{ completed: false }] }],
     finishedAt: 123,
   });
 
   assert.equal(typeof finished.finishedAt, 'number');
-  assert.equal(unfinished.finishedAt, null);
+  assert.equal(alreadySaved.finishedAt, 123);
+});
+
+test('hasWorkoutProgress detects typed values even without completed sets', () => {
+  assert.equal(hasWorkoutProgress({
+    exercises: [{ sets: [{ weight: 80, reps: null, duration: null, completed: false }] }],
+  }), true);
+  assert.equal(hasWorkoutProgress({
+    exercises: [{ sets: [{ weight: null, reps: null, duration: null, completed: false }] }],
+  }), false);
+});
+
+test('finalizeWorkout always marks the workout as finished now', () => {
+  const saved = finalizeWorkout({ exercises: [], finishedAt: null });
+  assert.equal(typeof saved.finishedAt, 'number');
 });

@@ -10,7 +10,7 @@ Permite llevar un diario de entrenamiento rápido desde móvil o desktop sin dep
 
 - Rutinas semanales por día.
 - Entrenamiento del día con series, peso, repeticiones y duración.
-- Auto-guardado de cambios del workout.
+- Auto-guardado de cambios del workout y guardado manual explícito.
 - Sincronización del workout activo cuando se edita la rutina usada ese día.
 - Temporizador de descanso opcional con sonidos configurables.
 - Historial de entrenamientos.
@@ -67,7 +67,7 @@ El lint debe pasar antes de dar una tarea por finalizada.
 1. Crea rutinas desde la pestaña **Rutinas**.
 2. Asigna cada rutina a un día de la semana.
 3. En **Hoy**, registra tus series.
-4. Los cambios se guardan automáticamente.
+4. Los cambios se guardan automáticamente y puedes pulsar **Guardar Entrenamiento** para confirmar el guardado.
 5. Revisa entrenamientos anteriores en **Historial**.
 6. Configura medidas, idioma, temporizador y datos en **Perfil**.
 
