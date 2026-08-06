@@ -69,6 +69,10 @@ export function hasWorkoutProgress(workout) {
   ));
 }
 
+export function shouldShowWorkoutInHistory(workout) {
+  return workout.finishedAt > 0 || hasWorkoutProgress(workout);
+}
+
 export function finalizeWorkout(workout) {
   return { ...workout, finishedAt: Date.now() };
 }

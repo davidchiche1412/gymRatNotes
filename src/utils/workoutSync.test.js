@@ -5,6 +5,7 @@ import {
   createSetsFromRoutineExercise,
   finalizeWorkout,
   hasWorkoutProgress,
+  shouldShowWorkoutInHistory,
   syncWorkoutExercises,
 } from './workoutSync.js';
 
@@ -86,4 +87,19 @@ test('hasWorkoutProgress detects typed values even without completed sets', () =
 test('finalizeWorkout always marks the workout as finished now', () => {
   const saved = finalizeWorkout({ exercises: [], finishedAt: null });
   assert.equal(typeof saved.finishedAt, 'number');
+});
+
+test('shouldShowWorkoutInHistory includes drafts with progress', () => {
+  assert.equal(shouldShowWorkoutInHistory({
+    finishedAt: null,
+    exercises: [{ sets: [{ weight: 50, reps: 10, duration: null, completed: false }] }],
+  }), true);
+  assert.equal(shouldShowWorkoutInHistory({
+    finishedAt: null,
+    exercises: [{ sets: [{ weight: null, reps: null, duration: null, completed: false }] }],
+  }), false);
+  assert.equal(shouldShowWorkoutInHistory({
+    finishedAt: 123,
+    exercises: [{ sets: [{ weight: null, reps: null, duration: null, completed: false }] }],
+  }), true);
 });

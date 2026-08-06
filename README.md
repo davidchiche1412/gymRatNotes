@@ -13,7 +13,7 @@ Permite llevar un diario de entrenamiento rápido desde móvil o desktop sin dep
 - Auto-guardado de cambios del workout y guardado manual explícito.
 - Sincronización del workout activo cuando se edita la rutina usada ese día.
 - Temporizador de descanso opcional con sonidos configurables.
-- Historial de entrenamientos.
+- Historial de entrenamientos finalizados o con progreso registrado.
 - Medidas corporales personalizables.
 - Estadísticas básicas de progreso.
 - Importación/exportación de datos.

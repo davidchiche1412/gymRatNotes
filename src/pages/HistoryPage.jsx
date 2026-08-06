@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
+import { shouldShowWorkoutInHistory } from '../utils/workoutSync';
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation();
@@ -12,11 +13,8 @@ export default function HistoryPage() {
   const { modal, confirm } = useModal();
 
   const loadWorkouts = async () => {
-    const all = await db.workouts
-      .where('finishedAt')
-      .above(0)
-      .reverse()
-      .sortBy('date');
+    const all = (await db.workouts.toArray())
+      .filter(shouldShowWorkoutInHistory);
     setWorkouts(all.sort((a, b) => b.date - a.date));
 
     const ids = [...new Set(all.flatMap(w => w.exercises.map(e => e.exerciseId)))];
@@ -30,12 +28,9 @@ export default function HistoryPage() {
 
   useEffect(() => {
     let cancelled = false;
-    db.workouts
-      .where('finishedAt')
-      .above(0)
-      .reverse()
-      .sortBy('date')
-      .then(async (all) => {
+    db.workouts.toArray()
+      .then(async (workouts) => {
+        const all = workouts.filter(shouldShowWorkoutInHistory);
         if (cancelled) return;
         setWorkouts(all.sort((a, b) => b.date - a.date));
 
