@@ -31,3 +31,10 @@ export function saveWorkout(workout) {
 export function deleteWorkout(id) {
   return db.workouts.delete(id);
 }
+
+export async function replaceWorkout(oldWorkoutId, nextWorkout) {
+  await db.transaction('rw', db.workouts, async () => {
+    await db.workouts.delete(oldWorkoutId);
+    await db.workouts.add(nextWorkout);
+  });
+}

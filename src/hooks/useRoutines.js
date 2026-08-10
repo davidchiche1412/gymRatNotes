@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { addRoutine, deleteRoutineById, getRoutines, updateRoutine } from '../db/queries/routines';
-import { clearRoutineFromSchedule } from '../db/queries/weeklySchedule';
+import { addRoutine, deleteRoutineAndClearSchedule, getRoutines, updateRoutine } from '../db/queries/routines';
 
 export function useRoutines() {
   const [routines, setRoutines] = useState([]);
@@ -41,8 +40,7 @@ export function useRoutines() {
   };
 
   const deleteRoutine = async (id) => {
-    await deleteRoutineById(id);
-    await clearRoutineFromSchedule(id);
+    await deleteRoutineAndClearSchedule(id);
     await loadRoutines();
   };
 
