@@ -1,23 +1,39 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { TimerProvider } from './context/TimerContext';
-import { db } from './db/database';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
-import HistoryPage from './pages/HistoryPage';
-import RoutinesPage from './pages/RoutinesPage';
-import ProfilePage from './pages/ProfilePage';
+import { useSettings } from './hooks/useSettings';
+
+const HistoryPage = lazy(() => import('./pages/HistoryPage'));
+const RoutinesPage = lazy(() => import('./pages/routines/RoutinesPage'));
+const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
+
+function PageFallback() {
+  return (
+    <div className="p-4 max-w-lg mx-auto text-sm text-text-secondary">
+      ...
+    </div>
+  );
+}
+
+function lazyPage(page) {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      {page}
+    </Suspense>
+  );
+}
 
 export default function App() {
   const { i18n } = useTranslation();
+  const { settings } = useSettings();
 
   useEffect(() => {
-    db.userSettings.get('settings').then(s => {
-      if (s?.language) i18n.changeLanguage(s.language);
-    });
-  }, [i18n]);
+    i18n.changeLanguage(settings.language);
+  }, [i18n, settings.language]);
 
   return (
     <ThemeProvider>
@@ -26,9 +42,9 @@ export default function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/routines" element={<RoutinesPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/history" element={lazyPage(<HistoryPage />)} />
+              <Route path="/routines" element={lazyPage(<RoutinesPage />)} />
+              <Route path="/profile" element={lazyPage(<ProfilePage />)} />
             </Route>
           </Routes>
         </BrowserRouter>

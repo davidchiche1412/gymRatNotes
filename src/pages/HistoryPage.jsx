@@ -1,53 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { db } from '../db/database';
 import Modal from '../components/Modal';
 import { useModal } from '../hooks/useModal';
-import { WORKOUT_STATUS, finishAllWorkoutSets, getWorkoutStatus, shouldShowWorkoutInHistory } from '../utils/workoutSync';
+import { WORKOUT_STATUS, getWorkoutStatus } from '../utils/workoutSync';
+import { useHistoryWorkout } from '../hooks/useHistoryWorkout';
+import { getExerciseNameById } from '../utils/exerciseName';
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation();
-  const [workouts, setWorkouts] = useState([]);
-  const [exerciseMap, setExerciseMap] = useState({});
   const [expandedId, setExpandedId] = useState(null);
   const { modal, confirm } = useModal();
-
-  const loadWorkouts = async () => {
-    const all = (await db.workouts.toArray())
-      .filter(shouldShowWorkoutInHistory);
-    setWorkouts(all.sort((a, b) => b.date - a.date));
-
-    const ids = [...new Set(all.flatMap(w => w.exercises.map(e => e.exerciseId)))];
-    if (ids.length > 0) {
-      const exs = await db.exercises.where('id').anyOf(ids).toArray();
-      const map = {};
-      exs.forEach(e => { map[e.id] = e; });
-      setExerciseMap(map);
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    db.workouts.toArray()
-      .then(async (workouts) => {
-        const all = workouts.filter(shouldShowWorkoutInHistory);
-        if (cancelled) return;
-        setWorkouts(all.sort((a, b) => b.date - a.date));
-
-        const ids = [...new Set(all.flatMap(w => w.exercises.map(e => e.exerciseId)))];
-        if (ids.length === 0) {
-          setExerciseMap({});
-          return;
-        }
-
-        const exs = await db.exercises.where('id').anyOf(ids).toArray();
-        if (cancelled) return;
-        const map = {};
-        exs.forEach(e => { map[e.id] = e; });
-        setExerciseMap(map);
-      });
-    return () => { cancelled = true; };
-  }, []);
+  const { workouts, exerciseMap, deleteHistoryWorkout, finishHistoryWorkout } = useHistoryWorkout();
 
   const handleDelete = async (id) => {
     const ok = await confirm({
@@ -57,14 +20,11 @@ export default function HistoryPage() {
       cancelText: t('common.cancel'),
     });
     if (!ok) return;
-    await db.workouts.delete(id);
-    loadWorkouts();
+    await deleteHistoryWorkout(id);
   };
 
   const handleFinishWorkout = async (workout) => {
-    const finished = finishAllWorkoutSets(workout);
-    await db.workouts.put(finished);
-    loadWorkouts();
+    await finishHistoryWorkout(workout);
   };
 
   const formatDate = (ts) => {
@@ -74,12 +34,6 @@ export default function HistoryPage() {
       month: 'short',
       year: 'numeric',
     });
-  };
-
-  const getExName = (id) => {
-    const ex = exerciseMap[id];
-    if (!ex) return '...';
-    return i18n.language === 'en' && ex.nameEN ? ex.nameEN : ex.name;
   };
 
   const getMuscleGroups = (workout) => {
@@ -136,7 +90,7 @@ export default function HistoryPage() {
                 <div className="px-3 pb-3 border-t border-border pt-2">
                   {w.exercises.map((ex, i) => (
                     <div key={i} className="mb-2">
-                      <p className="font-medium text-sm">{getExName(ex.exerciseId)}</p>
+                      <p className="font-medium text-sm">{getExerciseNameById(exerciseMap, ex.exerciseId, i18n.language)}</p>
                       <div className="mt-0.5 space-y-0.5">
                         {ex.sets.map((s, si) => (
                           <p key={si} className="text-xs text-text-secondary">

@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/database';
 import { useTimer } from '../context/useTimer';
 import { useModal } from './useModal';
+import { getExercisesByIds } from '../db/queries/exercises';
+import { getRoutine } from '../db/queries/routines';
+import { getScheduleForDay } from '../db/queries/weeklySchedule';
+import {
+  addWorkout,
+  deleteWorkout,
+  getFinishedWorkoutsNewestFirst,
+  getWorkoutForRoutineSince,
+  saveWorkout,
+} from '../db/queries/workouts';
 import {
   WORKOUT_STATUS,
   applyUserChangeStatus,
-  createPrefilledExercises,
-  createWorkoutExercisesFromRoutine,
+  createWorkoutFromRoutine,
   finalizeWorkout,
-  getWorkoutStatus,
-  syncPrefilledExercises,
-  syncWorkoutExercises,
+  syncWorkoutWithRoutine,
+  toggleWorkoutSetCompleted,
+  updateWorkoutSetValue,
 } from '../utils/workoutSync';
 import { buildTodayWorkout, getTodayWorkoutProgress } from '../utils/todayWorkoutView';
 
@@ -23,13 +31,13 @@ function getTodayDow() {
 
 async function getRoutineForToday() {
   const dow = getTodayDow();
-  const schedule = await db.weeklySchedule.where('dayOfWeek').equals(dow).first();
+  const schedule = await getScheduleForDay(dow);
   if (!schedule?.routineId) return null;
-  return db.routines.get(schedule.routineId);
+  return getRoutine(schedule.routineId);
 }
 
 async function getPreviousDataMap(routine) {
-  const prevWorkouts = await db.workouts.where('finishedAt').above(0).reverse().toArray();
+  const prevWorkouts = await getFinishedWorkoutsNewestFirst();
   const prevMap = {};
 
   for (const routineExercise of routine.exercises) {
@@ -43,6 +51,49 @@ async function getPreviousDataMap(routine) {
   }
 
   return prevMap;
+}
+
+async function getExerciseInfoMap(routine) {
+  const exerciseIds = routine.exercises.map(ex => ex.exerciseId);
+  const exercises = await getExercisesByIds(exerciseIds);
+
+  const infoMap = {};
+  exercises.forEach(ex => { infoMap[ex.id] = ex; });
+  return infoMap;
+}
+
+async function getExistingWorkoutForToday(routine) {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  return getWorkoutForRoutineSince(routine.id, todayStart.getTime());
+}
+
+async function loadTodayWorkoutData() {
+  const routine = await getRoutineForToday();
+  if (!routine) return null;
+
+  const [exerciseInfoMap, previousDataMap] = await Promise.all([
+    getExerciseInfoMap(routine),
+    getPreviousDataMap(routine),
+  ]);
+  const existing = await getExistingWorkoutForToday(routine);
+  const workout = existing
+    ? syncWorkoutWithRoutine(routine, existing, previousDataMap)
+    : createWorkoutFromRoutine(routine, previousDataMap, uuidv4(), Date.now());
+
+  if (existing) {
+    await saveWorkout(workout);
+  } else {
+    await addWorkout(workout);
+  }
+
+  return {
+    routine,
+    exerciseInfoMap,
+    previousDataMap,
+    workout,
+  };
 }
 
 export function useTodayWorkout() {
@@ -64,7 +115,7 @@ export function useTodayWorkout() {
     setWorkoutData(workout);
 
     const snapshot = structuredClone(workout);
-    writeQueue.current = writeQueue.current.then(() => db.workouts.put(snapshot));
+    writeQueue.current = writeQueue.current.then(() => saveWorkout(snapshot));
     await writeQueue.current;
   }, []);
 
@@ -78,65 +129,30 @@ export function useTodayWorkout() {
   }, [persistWorkout]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
-      const todayRoutine = await getRoutineForToday();
-      if (!todayRoutine) {
+      const data = await loadTodayWorkoutData();
+      if (cancelled) return;
+
+      if (!data) {
         setLoading(false);
         return;
       }
 
-      const exerciseIds = todayRoutine.exercises.map(ex => ex.exerciseId);
-      const exercises = exerciseIds.length > 0
-        ? await db.exercises.where('id').anyOf(exerciseIds).toArray()
-        : [];
-      const infoMap = {};
-      exercises.forEach(ex => { infoMap[ex.id] = ex; });
-
-      const prevMap = await getPreviousDataMap(todayRoutine);
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const existing = await db.workouts
-        .where('date')
-        .aboveOrEqual(todayStart.getTime())
-        .filter(workout => workout.routineId === todayRoutine.id)
-        .first();
-
-      let currentWorkout;
-      if (existing) {
-        currentWorkout = {
-          ...existing,
-          exercises: syncWorkoutExercises(todayRoutine.exercises, existing.exercises, prevMap),
-          prefilledExercises: syncPrefilledExercises(
-            todayRoutine.exercises,
-            existing.prefilledExercises || existing.exercises,
-            prevMap
-          ),
-        };
-        currentWorkout.status = currentWorkout.status || getWorkoutStatus(currentWorkout);
-        await db.workouts.put(currentWorkout);
-      } else {
-        const workoutExercises = createWorkoutExercisesFromRoutine(todayRoutine.exercises, prevMap);
-        currentWorkout = {
-          id: uuidv4(),
-          date: Date.now(),
-          routineId: todayRoutine.id,
-          status: WORKOUT_STATUS.NOT_STARTED,
-          exercises: workoutExercises,
-          prefilledExercises: createPrefilledExercises(workoutExercises),
-          finishedAt: null,
-        };
-        await db.workouts.add(currentWorkout);
-      }
-
-      setRoutine(todayRoutine);
-      setExerciseInfoMap(infoMap);
-      setPreviousDataMap(prevMap);
-      workoutRef.current = currentWorkout;
-      setWorkoutData(currentWorkout);
+      setRoutine(data.routine);
+      setExerciseInfoMap(data.exerciseInfoMap);
+      setPreviousDataMap(data.previousDataMap);
+      workoutRef.current = data.workout;
+      setWorkoutData(data.workout);
       setLoading(false);
     };
 
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const todayWorkout = useMemo(() => buildTodayWorkout({
@@ -163,29 +179,16 @@ export function useTodayWorkout() {
     const current = workoutRef.current;
     if (!current) return;
 
-    const exercises = [...current.exercises];
-    const sets = [...exercises[exIdx].sets];
-    sets[setIdx] = {
-      ...sets[setIdx],
-      [field]: value === '' ? null : Number(value),
-      completed: false,
-    };
-    exercises[exIdx] = { ...exercises[exIdx], sets };
-
-    updateWorkout({ ...current, exercises });
+    updateWorkout(updateWorkoutSetValue(current, exIdx, setIdx, field, value));
   }, [updateWorkout]);
 
   const handleToggleComplete = useCallback((exIdx, setIdx) => {
     const current = workoutRef.current;
     if (!current) return;
 
-    const exercises = [...current.exercises];
-    const sets = [...exercises[exIdx].sets];
-    const wasCompleted = sets[setIdx].completed;
-    sets[setIdx] = { ...sets[setIdx], completed: !wasCompleted };
-    exercises[exIdx] = { ...exercises[exIdx], sets };
+    const wasCompleted = current.exercises[exIdx].sets[setIdx].completed;
 
-    updateWorkout({ ...current, exercises });
+    updateWorkout(toggleWorkoutSetCompleted(current, exIdx, setIdx));
 
     if (!wasCompleted && routine) {
       startTimer(routine.restTime ?? 60);
@@ -210,19 +213,10 @@ export function useTodayWorkout() {
     });
     if (!ok) return;
 
-    const workoutExercises = createWorkoutExercisesFromRoutine(routine.exercises, previousDataMap);
-    const newWorkout = {
-      id: uuidv4(),
-      date: Date.now(),
-      routineId: routine.id,
-      status: WORKOUT_STATUS.NOT_STARTED,
-      exercises: workoutExercises,
-      prefilledExercises: createPrefilledExercises(workoutExercises),
-      finishedAt: null,
-    };
+    const newWorkout = createWorkoutFromRoutine(routine, previousDataMap, uuidv4(), Date.now());
 
-    await db.workouts.delete(workoutRef.current.id);
-    await db.workouts.add(newWorkout);
+    await deleteWorkout(workoutRef.current.id);
+    await addWorkout(newWorkout);
     workoutRef.current = newWorkout;
     setWorkoutData(newWorkout);
     setShowSaved(false);

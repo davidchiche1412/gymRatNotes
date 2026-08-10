@@ -25,9 +25,19 @@ export default function Layout() {
       setInstallPrompt(window.__pwaInstallPrompt);
       setShowInstallBanner(true);
     };
+    const handleInstalled = () => {
+      setShowInstallBanner(false);
+      setInstallPrompt(null);
+      window.__pwaInstallPrompt = null;
+    };
+
     if (window.__pwaInstallPrompt) handleReady();
     window.addEventListener('pwainstallready', handleReady);
-    return () => window.removeEventListener('pwainstallready', handleReady);
+    window.addEventListener('appinstalled', handleInstalled);
+    return () => {
+      window.removeEventListener('pwainstallready', handleReady);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
   }, []);
 
   // Swipe lateral para navegar entre tabs
@@ -91,11 +101,10 @@ export default function Layout() {
   const handleInstall = async () => {
     if (!installPrompt) return;
     installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShowInstallBanner(false);
-      window.__pwaInstallPrompt = null;
-    }
+    await installPrompt.userChoice;
+    setShowInstallBanner(false);
+    setInstallPrompt(null);
+    window.__pwaInstallPrompt = null;
   };
 
   return (

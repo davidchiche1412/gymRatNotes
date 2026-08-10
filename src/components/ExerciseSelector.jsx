@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db/database';
+import { getExerciseName } from '../utils/exerciseName';
+import { addExercise, getExercises } from '../db/queries/exercises';
 
 const muscleGroups = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core', 'forearms', 'fullbody'];
 
@@ -15,12 +16,12 @@ export default function ExerciseSelector({ onSelect, onClose }) {
   const [newMuscle, setNewMuscle] = useState('chest');
   const [newType, setNewType] = useState('weight');
 
-  const loadExercises = () => db.exercises.toArray().then(setExercises);
+  const loadExercises = () => getExercises().then(setExercises);
 
   useEffect(() => { loadExercises(); }, []);
 
   const filtered = exercises.filter(ex => {
-    const name = i18n.language === 'en' && ex.nameEN ? ex.nameEN : ex.name;
+    const name = getExerciseName(ex, i18n.language);
     const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase());
     const matchMuscle = !muscleFilter || ex.muscleGroup === muscleFilter;
     return matchSearch && matchMuscle;
@@ -37,7 +38,7 @@ export default function ExerciseSelector({ onSelect, onClose }) {
       movementType: newMuscle === 'core' ? 'core' : newMuscle === 'legs' || newMuscle === 'glutes' ? 'legs' : newType === 'weight' ? 'push' : 'push',
       isCustom: true,
     };
-    await db.exercises.add(exercise);
+    await addExercise(exercise);
     await loadExercises();
     setShowCreate(false);
     setNewName('');
@@ -97,7 +98,7 @@ export default function ExerciseSelector({ onSelect, onClose }) {
                 className="w-full text-left px-4 py-3 rounded-lg active:bg-bg transition-colors"
               >
                 <div className="font-medium text-sm flex items-center gap-2">
-                  {i18n.language === 'en' && ex.nameEN ? ex.nameEN : ex.name}
+                  {getExerciseName(ex, i18n.language)}
                   {ex.isCustom && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">{t('exercises.custom')}</span>}
                 </div>
                 <div className="text-xs text-text-secondary">

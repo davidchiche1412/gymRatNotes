@@ -61,6 +61,20 @@ export function createPrefilledExercises(exercises) {
   }));
 }
 
+export function createWorkoutFromRoutine(routine, previousDataMap, id, date) {
+  const exercises = createWorkoutExercisesFromRoutine(routine.exercises, previousDataMap);
+
+  return {
+    id,
+    date,
+    routineId: routine.id,
+    status: WORKOUT_STATUS.NOT_STARTED,
+    exercises,
+    prefilledExercises: createPrefilledExercises(exercises),
+    finishedAt: null,
+  };
+}
+
 export function syncWorkoutExercises(routineExercises, workoutExercises = [], previousDataMap = {}) {
   return routineExercises.map((routineExercise) => {
     const existing = workoutExercises.find(ex => ex.exerciseId === routineExercise.exerciseId);
@@ -89,6 +103,23 @@ export function syncWorkoutExercises(routineExercises, workoutExercises = [], pr
 
 export function syncPrefilledExercises(routineExercises, workoutExercises = [], previousDataMap = {}) {
   return createPrefilledExercises(syncWorkoutExercises(routineExercises, workoutExercises, previousDataMap));
+}
+
+export function syncWorkoutWithRoutine(routine, workout, previousDataMap = {}) {
+  const synced = {
+    ...workout,
+    exercises: syncWorkoutExercises(routine.exercises, workout.exercises, previousDataMap),
+    prefilledExercises: syncPrefilledExercises(
+      routine.exercises,
+      workout.prefilledExercises || workout.exercises,
+      previousDataMap
+    ),
+  };
+
+  return {
+    ...synced,
+    status: synced.status || getWorkoutStatus(synced),
+  };
 }
 
 export function hasCompletedSets(workout) {
@@ -131,6 +162,28 @@ export function applyUserChangeStatus(workout, previousStatus = workout.status) 
     return { ...workout, status: WORKOUT_STATUS.IN_PROGRESS, finishedAt: null };
   }
   return { ...workout, status: deriveWorkoutStatus(workout), finishedAt: null };
+}
+
+export function updateWorkoutSetValue(workout, exIdx, setIdx, field, value) {
+  const exercises = [...workout.exercises];
+  const sets = [...exercises[exIdx].sets];
+  sets[setIdx] = {
+    ...sets[setIdx],
+    [field]: value === '' ? null : Number(value),
+    completed: false,
+  };
+  exercises[exIdx] = { ...exercises[exIdx], sets };
+
+  return { ...workout, exercises };
+}
+
+export function toggleWorkoutSetCompleted(workout, exIdx, setIdx) {
+  const exercises = [...workout.exercises];
+  const sets = [...exercises[exIdx].sets];
+  sets[setIdx] = { ...sets[setIdx], completed: !sets[setIdx].completed };
+  exercises[exIdx] = { ...exercises[exIdx], sets };
+
+  return { ...workout, exercises };
 }
 
 export function shouldShowWorkoutInHistory(workout) {

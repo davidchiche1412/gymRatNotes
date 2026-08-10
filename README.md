@@ -26,7 +26,7 @@ Permite llevar un diario de entrenamiento rápido desde móvil o desktop sin dep
 - Tailwind CSS 4
 - Dexie / IndexedDB
 - React Router
-- Recharts
+- Recharts, cargado bajo demanda en la sección de estadísticas
 - i18next
 - Node test runner (`node:test`)
 
@@ -112,7 +112,8 @@ Los datos se guardan localmente en IndexedDB. No hay backend ni sincronización 
 src/
   components/       Componentes compartidos
   context/          Contextos React
-  db/               Dexie schema y seed inicial
+  db/               Dexie schema, seed inicial y queries de IndexedDB
+  hooks/            Estado y orquestación de flujos de UI
   i18n/             Traducciones
   pages/            Pantallas principales
   utils/            Lógica testeable
@@ -125,10 +126,9 @@ public/
 
 - Datos locales por dispositivo.
 - Sin multiusuario ni backend.
-- El bundle principal supera 500KB minificado; se podría dividir con lazy loading.
+- Las estadísticas se cargan bajo demanda para mantener ligero el bundle inicial.
 
 ## Roadmap
 
 - Autenticación y sincronización cloud.
 - Mejoras de estadísticas.
-- Code splitting por rutas.

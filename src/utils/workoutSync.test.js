@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createSetsFromRoutineExercise,
+  createWorkoutFromRoutine,
   createPrefilledExercises,
   deriveWorkoutStatus,
   finalizeWorkout,
@@ -10,8 +11,11 @@ import {
   hasManualChanges,
   shouldShowWorkoutInHistory,
   syncWorkoutExercises,
+  syncWorkoutWithRoutine,
+  toggleWorkoutSetCompleted,
   WORKOUT_STATUS,
   applyUserChangeStatus,
+  updateWorkoutSetValue,
 } from './workoutSync.js';
 
 test('createSetsFromRoutineExercise uses routine targets when there is no previous data', () => {
@@ -64,6 +68,62 @@ test('syncWorkoutExercises trims sets when the routine target sets decrease', ()
 
   assert.equal(synced[0].sets.length, 1);
   assert.deepEqual(synced[0].sets[0], { weight: 70, reps: 10, completed: true });
+});
+
+test('createWorkoutFromRoutine creates not_started workout with prefilled baseline', () => {
+  const workout = createWorkoutFromRoutine({
+    id: 'routine-a',
+    exercises: [{ exerciseId: 'bench', targetSets: 1, targetWeight: 80, targetReps: 8 }],
+  }, {}, 'workout-1', 123);
+
+  assert.equal(workout.id, 'workout-1');
+  assert.equal(workout.date, 123);
+  assert.equal(workout.routineId, 'routine-a');
+  assert.equal(workout.status, WORKOUT_STATUS.NOT_STARTED);
+  assert.deepEqual(workout.prefilledExercises, [{
+    exerciseId: 'bench',
+    sets: [{ weight: 80, reps: 8, duration: null }],
+  }]);
+});
+
+test('syncWorkoutWithRoutine syncs exercises and preserves existing status', () => {
+  const synced = syncWorkoutWithRoutine(
+    { exercises: [
+      { exerciseId: 'bench', targetSets: 2 },
+      { exerciseId: 'row', targetSets: 1, targetWeight: 50 },
+    ] },
+    {
+      status: WORKOUT_STATUS.IN_PROGRESS,
+      exercises: [{ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, duration: null, completed: true }] }],
+      prefilledExercises: [{ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, duration: null }] }],
+    },
+    {}
+  );
+
+  assert.equal(synced.status, WORKOUT_STATUS.IN_PROGRESS);
+  assert.deepEqual(synced.exercises.map(ex => ex.exerciseId), ['bench', 'row']);
+  assert.equal(synced.exercises[0].sets.length, 2);
+});
+
+test('updateWorkoutSetValue stores numeric values and uncompletes the set', () => {
+  const updated = updateWorkoutSetValue({
+    exercises: [{ sets: [{ weight: 80, reps: 8, duration: null, completed: true }] }],
+  }, 0, 0, 'weight', '82.5');
+
+  assert.deepEqual(updated.exercises[0].sets[0], {
+    weight: 82.5,
+    reps: 8,
+    duration: null,
+    completed: false,
+  });
+});
+
+test('toggleWorkoutSetCompleted toggles only the requested set', () => {
+  const updated = toggleWorkoutSetCompleted({
+    exercises: [{ sets: [{ completed: false }, { completed: true }] }],
+  }, 0, 0);
+
+  assert.deepEqual(updated.exercises[0].sets.map(set => set.completed), [true, true]);
 });
 
 test('hasManualChanges detects typed values when there is no prefill baseline', () => {

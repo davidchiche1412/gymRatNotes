@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../components/Modal';
 import DayOff from '../components/DayOff';
 import Loading from '../components/Loading';
 import { useTodayWorkout } from '../hooks/useTodayWorkout';
+import { getExerciseName } from '../utils/exerciseName';
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
@@ -22,11 +22,6 @@ export default function HomePage() {
     handleToggleComplete,
     handleResetWorkout,
   } = useTodayWorkout();
-
-  const getExName = useCallback((ex) => {
-    if (!ex) return '';
-    return i18n.language === 'en' && ex.nameEN ? ex.nameEN : ex.name;
-  }, [i18n.language]);
 
   if (loading) { return <Loading />; }
 
@@ -76,7 +71,7 @@ export default function HomePage() {
               <div className="px-4 pt-3 pb-1">
                 <div className="flex items-center justify-between">
                   <h3 className={`font-semibold text-sm ${allCompleted ? 'text-primary' : ''}`}>
-                    {getExName(exData)}
+                    {getExerciseName(exData, i18n.language)}
                   </h3>
                   {allCompleted && <span className="text-primary text-xs">✓</span>}
                 </div>
