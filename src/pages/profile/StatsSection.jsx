@@ -8,26 +8,32 @@ export default function StatsSection() {
   const {
     maxWeightData,
     frequencyData,
-    prs,
+    filteredPrs,
     selectedExercise,
     setSelectedExercise,
-    exercises,
+    selectedMuscleGroup,
+    setSelectedMuscleGroup,
+    exercisesWithProgress,
+    muscleGroupsWithPrs,
   } = useStats(i18n.language);
 
   return (
     <div className="space-y-6">
       {/* Max weight chart */}
       <div>
-        <h3 className="font-semibold mb-2">{t('profile.maxWeight')}</h3>
-        <select
-          value={selectedExercise}
-          onChange={e => setSelectedExercise(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm mb-2 hover:border-primary/40 transition-colors"
-        >
-          {exercises.map(ex => (
-            <option key={ex.id} value={ex.id}>{getExerciseName(ex, i18n.language)}</option>
-          ))}
-        </select>
+        <h3 className="font-semibold mb-1">{t('profile.maxWeight')}</h3>
+        <p className="text-xs text-text-secondary mb-2">{t('profile.maxWeightDescription')}</p>
+        {exercisesWithProgress.length > 0 && (
+          <select
+            value={selectedExercise}
+            onChange={e => setSelectedExercise(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm mb-2 hover:border-primary/40 transition-colors"
+          >
+            {exercisesWithProgress.map(ex => (
+              <option key={ex.id} value={ex.id}>{getExerciseName(ex, i18n.language)}</option>
+            ))}
+          </select>
+        )}
         {maxWeightData.length > 1 ? (
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={maxWeightData}>
@@ -62,13 +68,32 @@ export default function StatsSection() {
       {/* PRs */}
       <div>
         <h3 className="font-semibold mb-2">{t('profile.personalRecords')}</h3>
-        {prs.length === 0 ? (
+        {muscleGroupsWithPrs.length > 0 && (
+          <select
+            value={selectedMuscleGroup}
+            onChange={e => setSelectedMuscleGroup(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-sm mb-2 hover:border-primary/40 transition-colors"
+          >
+            <option value="">{t('exercises.all')}</option>
+            {muscleGroupsWithPrs.map(muscleGroup => (
+              <option key={muscleGroup} value={muscleGroup}>
+                {t(`exercises.muscleGroups.${muscleGroup}`)}
+              </option>
+            ))}
+          </select>
+        )}
+        {filteredPrs.length === 0 ? (
           <p className="text-sm text-text-secondary">{t('profile.noPRs')}</p>
         ) : (
           <div className="space-y-2">
-            {prs.slice(0, 10).map((pr, i) => (
+            {filteredPrs.slice(0, 10).map((pr, i) => (
               <div key={i} className="flex justify-between items-center bg-bg rounded-lg px-3 py-2">
-                <span className="text-sm font-medium">{getExerciseName(pr.exercise, i18n.language)}</span>
+                <span className="text-sm font-medium">
+                  {getExerciseName(pr.exercise, i18n.language)}
+                  <span className="block text-[10px] text-text-secondary">
+                    {t(`exercises.muscleGroups.${pr.exercise.muscleGroup}`)}
+                  </span>
+                </span>
                 <span className="text-sm text-primary font-semibold">{pr.weight}kg × {pr.reps}</span>
               </div>
             ))}
