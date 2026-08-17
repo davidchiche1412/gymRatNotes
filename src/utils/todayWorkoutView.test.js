@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTodayWorkout, getTodayWorkoutProgress } from './todayWorkoutView.js';
+import {
+  buildTodayWorkout,
+  getTodayWorkoutProgress,
+  getWorkoutSetInputValue,
+  getWorkoutSetPlaceholder,
+} from './todayWorkoutView.js';
 
 test('buildTodayWorkout joins routine, workout and exercise info for the UI', () => {
   const todayWorkout = buildTodayWorkout({
@@ -57,4 +62,13 @@ test('getTodayWorkoutProgress returns totals and percentage', () => {
     completedSets: 2,
     progress: 67,
   });
+});
+
+test('workout set inputs use prefilled data as placeholders before starting', () => {
+  const set = { weight: 80, reps: 8, completed: false };
+  const prefilledSets = [{ weight: 80, reps: 8 }];
+
+  assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), '');
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, 0, 'weight'), 80);
+  assert.equal(getWorkoutSetInputValue('in_progress', set, 'weight'), 80);
 });

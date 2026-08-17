@@ -47,3 +47,12 @@ export function getTodayWorkoutProgress(todayWorkout) {
     progress: totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0,
   };
 }
+
+export function getWorkoutSetInputValue(workoutStatus, set, field) {
+  if (workoutStatus === 'not_started' && !set.completed) return '';
+  return set[field] ?? '';
+}
+
+export function getWorkoutSetPlaceholder(prefilledSets, setIndex, field) {
+  return prefilledSets?.[setIndex]?.[field] ?? '—';
+}

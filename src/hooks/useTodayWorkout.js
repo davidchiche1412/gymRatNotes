@@ -42,6 +42,7 @@ async function getPreviousDataMap(routine) {
 
   for (const routineExercise of routine.exercises) {
     for (const workout of prevWorkouts) {
+      if (workout.routineId !== routine.id) continue;
       const previousExercise = workout.exercises.find(ex => ex.exerciseId === routineExercise.exerciseId);
       if (previousExercise) {
         prevMap[routineExercise.exerciseId] = previousExercise;

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import Modal from '../../components/Modal';
 import { useModal } from '../../hooks/useModal';
 import { useMeasurements } from '../../hooks/useMeasurements';
 

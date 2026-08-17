@@ -4,6 +4,7 @@ import DayOff from '../components/DayOff';
 import Loading from '../components/Loading';
 import { useTodayWorkout } from '../hooks/useTodayWorkout';
 import { getExerciseName } from '../utils/exerciseName';
+import { getWorkoutSetInputValue, getWorkoutSetPlaceholder } from '../utils/todayWorkoutView';
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
@@ -108,8 +109,8 @@ export default function HomePage() {
                         <input
                           type="number"
                           inputMode="decimal"
-                          placeholder="—"
-                          value={set.weight ?? ''}
+                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, si, 'weight')}
+                          value={getWorkoutSetInputValue(todayWorkout.status, set, 'weight')}
                           onChange={e => handleSetChange(exIdx, si, 'weight', e.target.value)}
                           
                           className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
@@ -121,8 +122,8 @@ export default function HomePage() {
                         <input
                           type="number"
                           inputMode="numeric"
-                          placeholder="—"
-                          value={set.reps ?? ''}
+                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, si, 'reps')}
+                          value={getWorkoutSetInputValue(todayWorkout.status, set, 'reps')}
                           onChange={e => handleSetChange(exIdx, si, 'reps', e.target.value)}
                           
                           className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
@@ -137,8 +138,8 @@ export default function HomePage() {
                       <input
                         type="number"
                         inputMode="numeric"
-                        placeholder="—"
-                        value={set.duration ?? ''}
+                        placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, si, 'duration')}
+                        value={getWorkoutSetInputValue(todayWorkout.status, set, 'duration')}
                         onChange={e => handleSetChange(exIdx, si, 'duration', e.target.value)}
                         
                         className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
