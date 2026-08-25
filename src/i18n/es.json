@@ -185,6 +185,19 @@
     "ready": "¡Listo!",
     "tapToDismiss": "Toca ✕ para cerrar"
   },
+  "auth": {
+    "title": "Iniciar sesión",
+    "login": "Entrar",
+    "register": "Registrarse",
+    "email": "Email",
+    "password": "Contraseña",
+    "google": "Continuar con Google",
+    "or": "o",
+    "signOut": "Cerrar sesión",
+    "continueGuest": "Continuar sin cuenta",
+    "checkEmail": "Revisa tu email para confirmar el registro.",
+    "syncBanner": "Sincronizado ☁️"
+  },
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",

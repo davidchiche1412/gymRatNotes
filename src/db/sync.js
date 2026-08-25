@@ -1,0 +1,171 @@
+import { supabase } from './supabase';
+import { db } from './database';
+
+// Mapeo tabla local → tabla Supabase
+const TABLE_MAP = {
+  exercises:       'exercises',
+  routines:        'routines',
+  weeklySchedule:  'weekly_schedule',
+  workouts:        'workouts',
+  bodyMeasurements: 'body_measurements',
+  userSettings:    'user_settings',
+};
+
+// ─── Serializar local → remoto ───────────────────────────────────────────────
+
+function serializeExercise(row, userId) {
+  return { id: row.id, user_id: userId, name: row.name, nameEN: row.nameEN, type: row.type, muscleGroup: row.muscleGroup, movementType: row.movementType, isCustom: row.isCustom, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+}
+
+function serializeRoutine(row, userId) {
+  return { id: row.id, user_id: userId, name: row.name, exercises: row.exercises, restTime: row.restTime, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+}
+
+function serializeWeeklySchedule(row, userId) {
+  return { id: row.id, user_id: userId, dayOfWeek: row.dayOfWeek, routineId: row.routineId, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+}
+
+function serializeWorkout(row, userId) {
+  return { id: row.id, user_id: userId, date: row.date, routineId: row.routineId, status: row.status, exercises: row.exercises, prefilledExercises: row.prefilledExercises, finishedAt: row.finishedAt, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+}
+
+function serializeBodyMeasurement(row, userId) {
+  const { id, updatedAt, createdAt, ...rest } = row;
+  return { id, user_id: userId, date: row.date, data: rest, updated_at: updatedAt ?? Date.now(), created_at: createdAt ?? Date.now() };
+}
+
+function serializeUserSettings(row, userId) {
+  return { id: row.id, user_id: userId, name: row.name, language: row.language, theme: row.theme, restEnabled: row.restEnabled, restSoundType: row.restSoundType, restVolume: row.restVolume, measurementFields: row.measurementFields, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+}
+
+// ─── Deserializar remoto → local ──────────────────────────────────────────────
+
+function deserializeExercise(row) {
+  return { id: row.id, name: row.name, nameEN: row.nameEN, type: row.type, muscleGroup: row.muscleGroup, movementType: row.movementType, isCustom: row.isCustom, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+}
+
+function deserializeRoutine(row) {
+  return { id: row.id, name: row.name, exercises: row.exercises, restTime: row.restTime, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+}
+
+function deserializeWeeklySchedule(row) {
+  return { id: row.id, dayOfWeek: row.dayOfWeek, routineId: row.routineId, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+}
+
+function deserializeWorkout(row) {
+  return { id: row.id, date: row.date, routineId: row.routineId, status: row.status, exercises: row.exercises, prefilledExercises: row.prefilledExercises, finishedAt: row.finishedAt, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+}
+
+function deserializeBodyMeasurement(row) {
+  return { id: row.id, date: row.date, ...row.data, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+}
+
+function deserializeUserSettings(row) {
+  return { id: row.id, name: row.name, language: row.language, theme: row.theme, restEnabled: row.restEnabled, restSoundType: row.restSoundType, restVolume: row.restVolume, measurementFields: row.measurementFields, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+}
+
+const CONFIGS = [
+  { local: 'exercises',        remote: 'exercises',         serialize: serializeExercise,        deserialize: deserializeExercise,        filter: row => row.isCustom },
+  { local: 'routines',         remote: 'routines',          serialize: serializeRoutine,         deserialize: deserializeRoutine,         filter: null },
+  { local: 'weeklySchedule',   remote: 'weekly_schedule',   serialize: serializeWeeklySchedule,  deserialize: deserializeWeeklySchedule,  filter: null },
+  { local: 'workouts',         remote: 'workouts',          serialize: serializeWorkout,         deserialize: deserializeWorkout,         filter: null },
+  { local: 'bodyMeasurements', remote: 'body_measurements', serialize: serializeBodyMeasurement, deserialize: deserializeBodyMeasurement, filter: null },
+  { local: 'userSettings',     remote: 'user_settings',     serialize: serializeUserSettings,    deserialize: deserializeUserSettings,    filter: null },
+];
+
+// ─── Helpers de meta ──────────────────────────────────────────────────────────
+
+async function getLastSyncAt() {
+  const row = await db.syncMeta.get('lastSyncAt');
+  return row?.value ?? 0;
+}
+
+async function setLastSyncAt(ts) {
+  await db.syncMeta.put({ key: 'lastSyncAt', value: ts });
+}
+
+// ─── Push: local dirty → Supabase ────────────────────────────────────────────
+
+async function pushTable(config, userId) {
+  let rows = await db[config.local].where('dirty').equals(1).toArray();
+  if (config.filter) rows = rows.filter(config.filter);
+  if (rows.length === 0) return;
+
+  const remote = rows.map(r => config.serialize(r, userId));
+  const { error } = await supabase.from(config.remote).upsert(remote, { onConflict: 'id' });
+  if (error) throw error;
+
+  await db[config.local].bulkPut(rows.map(r => ({ ...r, dirty: 0 })));
+}
+
+// ─── Pull: Supabase cambios desde lastSyncAt → local ──────────────────────────
+
+async function pullTable(config, userId, since) {
+  const { data, error } = await supabase
+    .from(config.remote)
+    .select('*')
+    .eq('user_id', userId)
+    .gt('updated_at', since);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return;
+
+  for (const remote of data) {
+    const local = await db[config.local].get(remote.id);
+    const localUpdatedAt = local?.updatedAt ?? 0;
+    const remoteUpdatedAt = remote.updated_at;
+
+    if (remoteUpdatedAt > localUpdatedAt) {
+      await db[config.local].put(config.deserialize(remote));
+    }
+  }
+}
+
+// ─── API pública ──────────────────────────────────────────────────────────────
+
+export async function sync(userId) {
+  if (!supabase || !userId) return;
+
+  const since = await getLastSyncAt();
+  const now = Date.now();
+
+  await Promise.all(CONFIGS.map(c => pushTable(c, userId)));
+  await Promise.all(CONFIGS.map(c => pullTable(c, userId, since)));
+
+  await setLastSyncAt(now);
+}
+
+export async function initialPushAll(userId) {
+  if (!supabase || !userId) return;
+
+  for (const config of CONFIGS) {
+    let rows = await db[config.local].toArray();
+    if (config.filter) rows = rows.filter(config.filter);
+    if (rows.length === 0) continue;
+
+    const remote = rows.map(r => config.serialize(r, userId));
+    const { error } = await supabase.from(config.remote).upsert(remote, { onConflict: 'id' });
+    if (error) throw error;
+    await db[config.local].bulkPut(rows.map(r => ({ ...r, dirty: 0 })));
+  }
+
+  await setLastSyncAt(Date.now());
+}
+
+export async function initialPullAll(userId) {
+  if (!supabase || !userId) return;
+
+  for (const config of CONFIGS) {
+    const { data, error } = await supabase
+      .from(config.remote)
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    if (!data || data.length === 0) continue;
+
+    await db[config.local].bulkPut(data.map(config.deserialize));
+  }
+
+  await setLastSyncAt(Date.now());
+}

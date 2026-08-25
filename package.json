@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
     "dexie": "^4.4.1",
     "i18next": "^26.0.1",
     "react": "^19.2.4",

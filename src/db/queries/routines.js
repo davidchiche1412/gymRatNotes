@@ -9,11 +9,12 @@ export function getRoutine(id) {
 }
 
 export function addRoutine(routine) {
-  return db.routines.add(routine);
+  const now = Date.now();
+  return db.routines.add({ ...routine, dirty: 1, createdAt: routine.createdAt ?? now });
 }
 
 export function updateRoutine(id, patch) {
-  return db.routines.update(id, patch);
+  return db.routines.update(id, { ...patch, dirty: 1 });
 }
 
 export function deleteRoutineById(id) {
@@ -25,7 +26,7 @@ export async function deleteRoutineAndClearSchedule(id) {
     await db.routines.delete(id);
     const schedules = await db.weeklySchedule.where('routineId').equals(id).toArray();
     for (const schedule of schedules) {
-      await db.weeklySchedule.update(schedule.id, { routineId: null });
+      await db.weeklySchedule.update(schedule.id, { routineId: null, dirty: 1, updatedAt: Date.now() });
     }
   });
 }

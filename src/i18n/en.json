@@ -185,6 +185,19 @@
     "ready": "Ready!",
     "tapToDismiss": "Tap ✕ to dismiss"
   },
+  "auth": {
+    "title": "Sign in",
+    "login": "Sign in",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "google": "Continue with Google",
+    "or": "or",
+    "signOut": "Sign out",
+    "continueGuest": "Continue without account",
+    "checkEmail": "Check your email to confirm your registration.",
+    "syncBanner": "Synced ☁️"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

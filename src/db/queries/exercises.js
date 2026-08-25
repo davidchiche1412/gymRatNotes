@@ -10,5 +10,6 @@ export function getExercisesByIds(ids) {
 }
 
 export function addExercise(exercise) {
-  return db.exercises.add(exercise);
+  const now = Date.now();
+  return db.exercises.add({ ...exercise, dirty: 1, updatedAt: exercise.updatedAt ?? now, createdAt: exercise.createdAt ?? now });
 }

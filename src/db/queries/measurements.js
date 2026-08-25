@@ -5,7 +5,8 @@ export function getMeasurementsNewestFirst() {
 }
 
 export function addMeasurement(measurement) {
-  return db.bodyMeasurements.add(measurement);
+  const now = Date.now();
+  return db.bodyMeasurements.add({ ...measurement, dirty: 1, updatedAt: measurement.updatedAt ?? now, createdAt: measurement.createdAt ?? now });
 }
 
 export function deleteMeasurementById(id) {

@@ -20,12 +20,17 @@ export function getWorkoutForRoutineSince(routineId, timestamp) {
     .first();
 }
 
+function withDirty(workout) {
+  const now = Date.now();
+  return { ...workout, dirty: 1, updatedAt: workout.updatedAt ?? now, createdAt: workout.createdAt ?? now };
+}
+
 export function addWorkout(workout) {
-  return db.workouts.add(workout);
+  return db.workouts.add(withDirty(workout));
 }
 
 export function saveWorkout(workout) {
-  return db.workouts.put(workout);
+  return db.workouts.put(withDirty(workout));
 }
 
 export function deleteWorkout(id) {
@@ -35,6 +40,6 @@ export function deleteWorkout(id) {
 export async function replaceWorkout(oldWorkoutId, nextWorkout) {
   await db.transaction('rw', db.workouts, async () => {
     await db.workouts.delete(oldWorkoutId);
-    await db.workouts.add(nextWorkout);
+    await db.workouts.add(withDirty(nextWorkout));
   });
 }

@@ -9,7 +9,7 @@ export function getScheduleForDay(dayOfWeek) {
 }
 
 export function updateScheduleRoutine(id, routineId) {
-  return db.weeklySchedule.update(id, { routineId });
+  return db.weeklySchedule.update(id, { routineId, dirty: 1, updatedAt: Date.now() });
 }
 
 export async function clearRoutineFromSchedule(routineId) {
