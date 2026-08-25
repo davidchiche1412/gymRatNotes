@@ -70,7 +70,18 @@
     "noRoutineAssigned": "No routine",
     "restTime": "Rest",
     "restTimeBetweenSets": "Rest between sets",
-    "sound": "Sound on finish"
+    "sound": "Sound on finish",
+    "weightMode": "Load mode",
+    "weightModes": {
+      "total": "Total weight",
+      "per_side": "Per side",
+      "machine": "Machine / press"
+    },
+    "weightModesShort": {
+      "total": "total",
+      "per_side": "per side",
+      "machine": "machine"
+    }
   },
   "exercises": {
     "title": "Exercises",

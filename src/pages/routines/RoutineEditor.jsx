@@ -5,21 +5,54 @@ import DraggableExerciseList from '../../components/DraggableExerciseList';
 import { getExerciseName } from '../../utils/exerciseName';
 import { useExerciseInfoMap } from '../../hooks/useExerciseInfoMap';
 
+function buildTargetsForType(type, previousExercise = null) {
+  if (type === 'timed') {
+    return {
+      targetWeight: null,
+      targetReps: null,
+      targetDuration: previousExercise?.targetDuration ?? null,
+      targetWeightMode: null,
+    };
+  }
+
+  return {
+    targetWeight: previousExercise?.targetWeight ?? null,
+    targetReps: previousExercise?.targetReps ?? null,
+    targetDuration: null,
+    targetWeightMode: previousExercise?.targetWeightMode ?? 'total',
+  };
+}
+
 export default function RoutineEditor({ routine, onSave, onCancel }) {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState(routine?.name || '');
   const [exercises, setExercises] = useState(routine?.exercises || []);
   const [restTime, setRestTime] = useState(routine?.restTime ?? 60);
   const [showSelector, setShowSelector] = useState(false);
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState(null);
   const exerciseInfoMap = useExerciseInfoMap(exercises);
 
-  const handleAddExercise = (exercise) => {
+  const handleSelectExercise = (exercise) => {
+    if (editingExerciseIndex !== null) {
+      setExercises(current => {
+        const updated = [...current];
+        const previousExercise = updated[editingExerciseIndex];
+        updated[editingExerciseIndex] = {
+          ...previousExercise,
+          exerciseId: exercise.id,
+          ...buildTargetsForType(exercise.type, previousExercise),
+        };
+        return updated;
+      });
+      setEditingExerciseIndex(null);
+      setShowSelector(false);
+      return;
+    }
+
     setExercises([...exercises, {
       exerciseId: exercise.id,
       targetSets: 3,
-      targetWeight: null,
-      targetReps: null,
-      targetDuration: null,
+      ...buildTargetsForType(exercise.type),
     }]);
     setShowSelector(false);
   };
@@ -89,12 +122,19 @@ export default function RoutineEditor({ routine, onSave, onCancel }) {
         exercises={exerciseItems}
         onReorder={handleReorder}
         onUpdate={handleUpdateExercise}
+        onEdit={(index) => {
+          setEditingExerciseIndex(index);
+          setShowSelector(true);
+        }}
         onRemove={handleRemoveExercise}
         t={t}
       />
 
       <button
-        onClick={() => setShowSelector(true)}
+        onClick={() => {
+          setEditingExerciseIndex(null);
+          setShowSelector(true);
+        }}
         className="w-full mt-3 py-2 border-2 border-dashed border-primary/30 text-primary rounded-xl text-sm font-medium"
       >
         + {t('routines.addExercise')}
@@ -109,8 +149,11 @@ export default function RoutineEditor({ routine, onSave, onCancel }) {
 
       {showSelector && (
         <ExerciseSelector
-          onSelect={handleAddExercise}
-          onClose={() => setShowSelector(false)}
+          onSelect={handleSelectExercise}
+          onClose={() => {
+            setShowSelector(false);
+            setEditingExerciseIndex(null);
+          }}
         />
       )}
     </div>

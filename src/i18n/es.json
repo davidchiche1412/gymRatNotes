@@ -70,7 +70,18 @@
     "noRoutineAssigned": "Sin rutina",
     "restTime": "Descanso",
     "restTimeBetweenSets": "Descanso entre series",
-    "sound": "Sonido al terminar"
+    "sound": "Sonido al terminar",
+    "weightMode": "Modo de carga",
+    "weightModes": {
+      "total": "Peso total",
+      "per_side": "Por lado",
+      "machine": "Máquina / prensa"
+    },
+    "weightModesShort": {
+      "total": "total",
+      "per_side": "por lado",
+      "machine": "máquina"
+    }
   },
   "exercises": {
     "title": "Ejercicios",

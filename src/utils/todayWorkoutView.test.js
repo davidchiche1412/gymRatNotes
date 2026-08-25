@@ -46,6 +46,7 @@ test('buildTodayWorkout joins routine, workout and exercise info for the UI', ()
   assert.equal(todayWorkout.dayOfWeek, 0);
   assert.equal(todayWorkout.exercises[0].name, 'Press de banca');
   assert.equal(todayWorkout.exercises[0].targetWeight, 80);
+  assert.equal(todayWorkout.exercises[0].targetWeightMode, 'total');
   assert.deepEqual(todayWorkout.exercises[0].prefilledSets, [{ weight: 80, reps: 8, duration: null }]);
 });
 

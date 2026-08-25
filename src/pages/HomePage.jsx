@@ -78,6 +78,9 @@ export default function HomePage() {
                 </div>
                 <p className="text-[11px] text-text-secondary">
                   {exData.muscleGroup && t(`exercises.muscleGroups.${exData.muscleGroup}`)}
+                  {(exData.type === 'weight' || exData.type === 'bodyweight') && (
+                    <> · {t(`routines.weightModesShort.${exData.targetWeightMode || 'total'}`)}</>
+                  )}
                 </p>
               </div>
 

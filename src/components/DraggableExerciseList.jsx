@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export default function DraggableExerciseList({ exercises, onReorder, onUpdate, onRemove, t }) {
+export default function DraggableExerciseList({ exercises, onReorder, onUpdate, onEdit, onRemove, t }) {
   const [dragIdx, setDragIdx] = useState(null);
   const [overIdx, setOverIdx] = useState(null);
   const itemRefs = useRef([]);
@@ -100,6 +100,7 @@ export default function DraggableExerciseList({ exercises, onReorder, onUpdate, 
                 )}
               </div>
 
+              <button onClick={() => onEdit(i)} className="text-text-secondary text-sm ml-1">✎</button>
               <button onClick={() => onRemove(i)} className="text-danger/70 text-sm ml-1">✕</button>
             </div>
 
@@ -128,6 +129,18 @@ export default function DraggableExerciseList({ exercises, onReorder, onUpdate, 
                       onChange={e => onUpdate(i, 'targetWeight', e.target.value === '' ? null : Number(e.target.value))}
                       className="w-16 text-center px-1 py-1.5 rounded-lg border border-border bg-bg text-sm"
                     />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-text-secondary mb-0.5">{t('routines.weightMode')}</span>
+                    <select
+                      value={ex.targetWeightMode || 'total'}
+                      onChange={e => onUpdate(i, 'targetWeightMode', e.target.value)}
+                      className="w-28 text-center px-1 py-1.5 rounded-lg border border-border bg-bg text-xs"
+                    >
+                      <option value="total">{t('routines.weightModes.total')}</option>
+                      <option value="per_side">{t('routines.weightModes.per_side')}</option>
+                      <option value="machine">{t('routines.weightModes.machine')}</option>
+                    </select>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] text-text-secondary mb-0.5">{t('workout.reps')}</span>

@@ -25,6 +25,7 @@ export function buildTodayWorkout({ routine, workout, exerciseInfoMap = {}, dayO
         notes: workoutExercise.notes,
         targetSets: routineExercise?.targetSets,
         targetWeight: routineExercise?.targetWeight,
+        targetWeightMode: routineExercise?.targetWeightMode || 'total',
         targetReps: routineExercise?.targetReps,
         targetDuration: routineExercise?.targetDuration,
         sets: workoutExercise.sets,
