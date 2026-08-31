@@ -1,3 +1,4 @@
+import { sanitizeString } from '../../utils/sanitize';
 import { db } from '../database';
 
 export function getExercises() {
@@ -11,5 +12,5 @@ export function getExercisesByIds(ids) {
 
 export function addExercise(exercise) {
   const now = Date.now();
-  return db.exercises.add({ ...exercise, dirty: 1, updatedAt: exercise.updatedAt ?? now, createdAt: exercise.createdAt ?? now });
+  return db.exercises.add({ ...exercise, name: sanitizeString(exercise.name, 100), nameEN: sanitizeString(exercise.nameEN, 100), dirty: 1, updatedAt: exercise.updatedAt ?? now, createdAt: exercise.createdAt ?? now });
 }

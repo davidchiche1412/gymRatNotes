@@ -1,3 +1,4 @@
+import { sanitizeString } from '../../utils/sanitize';
 import { db } from '../database';
 import { validateAppBackup } from '../../utils/backup';
 
@@ -6,7 +7,8 @@ export function getSettings() {
 }
 
 export function saveSettings(settings) {
-  return db.userSettings.put(settings);
+  const sanitized = settings.name ? { ...settings, name: sanitizeString(settings.name, 50) } : settings;
+  return db.userSettings.put(sanitized);
 }
 
 export async function exportAppData() {

@@ -1,3 +1,4 @@
+import { sanitizeString } from '../../utils/sanitize';
 import { db } from '../database';
 
 export function getRoutines() {
@@ -10,11 +11,12 @@ export function getRoutine(id) {
 
 export function addRoutine(routine) {
   const now = Date.now();
-  return db.routines.add({ ...routine, dirty: 1, createdAt: routine.createdAt ?? now });
+  return db.routines.add({ ...routine, name: sanitizeString(routine.name, 100), dirty: 1, createdAt: routine.createdAt ?? now });
 }
 
 export function updateRoutine(id, patch) {
-  return db.routines.update(id, { ...patch, dirty: 1 });
+  const sanitized = patch.name ? { ...patch, name: sanitizeString(patch.name, 100) } : patch;
+  return db.routines.update(id, { ...sanitized, dirty: 1 });
 }
 
 export function deleteRoutineById(id) {
