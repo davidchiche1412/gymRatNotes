@@ -48,8 +48,8 @@ export default function RoutinesPage() {
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(routine.id);
-      // Publicar en Supabase en segundo plano si está disponible
-      if (supabase) shareRoutine(routine).catch(() => {});
+      // Publicar en Supabase en segundo plano
+      shareRoutine(routine).catch(() => {});
       setSharedFeedback(prev => ({ ...prev, [routine.id]: t('routines.idCopied') }));
     } catch {
       setSharedFeedback(prev => ({ ...prev, [routine.id]: t('routines.shareError') }));
