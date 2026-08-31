@@ -50,10 +50,10 @@ export function getTodayWorkoutProgress(todayWorkout) {
 }
 
 export function getWorkoutSetInputValue(workoutStatus, set, field) {
-  // Muestra el valor solo si el usuario lo ha introducido explícitamente o la sesión está avanzada
-  if (set.completed || set.userEdited) return set[field] ?? '';
-  if (workoutStatus === 'in_progress' || workoutStatus === 'finished') return set[field] ?? '';
-  return '';
+  // En not_started: vacío hasta que el usuario toque el set (muestra placeholder)
+  // En cualquier otro estado: muestra el valor del set (histórico o tecleado)
+  if (workoutStatus === 'not_started' && !set.completed && !set.userEdited) return '';
+  return set[field] ?? '';
 }
 
 export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {

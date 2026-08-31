@@ -73,9 +73,15 @@ test('getWorkoutSetInputValue: set sin editar en not_started muestra vacío', ()
   assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), '');
 });
 
-test('getWorkoutSetInputValue: set sin editar en draft muestra vacío', () => {
+test('getWorkoutSetInputValue: set sin editar en draft muestra el valor histórico', () => {
+  // En draft los inputs se auto-rellenan con el valor histórico del set
   const set = { weight: 80, reps: 8, completed: false };
-  assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), '');
+  assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), 80);
+});
+
+test('getWorkoutSetInputValue: set sin editar en in_progress muestra el valor histórico', () => {
+  const set = { weight: 80, reps: 8, completed: false };
+  assert.equal(getWorkoutSetInputValue('in_progress', set, 'weight'), 80);
 });
 
 test('getWorkoutSetInputValue: set completado siempre muestra valor', () => {
@@ -84,15 +90,10 @@ test('getWorkoutSetInputValue: set completado siempre muestra valor', () => {
   assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), 80);
 });
 
-test('getWorkoutSetInputValue: set userEdited muestra valor aunque no completado', () => {
+test('getWorkoutSetInputValue: set userEdited en not_started muestra valor', () => {
+  // El usuario acaba de teclear algo en not_started → debe verse
   const set = { weight: 90, reps: 10, completed: false, userEdited: true };
-  assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), 90);
   assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), 90);
-});
-
-test('getWorkoutSetInputValue: in_progress sin editar muestra valor (compatibilidad)', () => {
-  const set = { weight: 80, reps: 8, completed: false };
-  assert.equal(getWorkoutSetInputValue('in_progress', set, 'weight'), 80);
 });
 
 // ── getWorkoutSetPlaceholder ──────────────────────────────────────────────────
