@@ -171,6 +171,7 @@ export function updateWorkoutSetValue(workout, exIdx, setIdx, field, value) {
     ...sets[setIdx],
     [field]: value === '' ? null : Number(value),
     completed: false,
+    userEdited: true,
   };
   exercises[exIdx] = { ...exercises[exIdx], sets };
 

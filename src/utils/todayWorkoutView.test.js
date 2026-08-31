@@ -66,111 +66,127 @@ test('getTodayWorkoutProgress returns totals and percentage', () => {
   });
 });
 
-test('workout set inputs use prefilled data as placeholders before starting', () => {
-  const set = { weight: 80, reps: 8, completed: false };
-  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
-  const sets = [set, { weight: null, reps: null, completed: false }];
+// ── getWorkoutSetInputValue ──────────────────────────────────────────────────
 
+test('getWorkoutSetInputValue: set sin editar en not_started muestra vacío', () => {
+  const set = { weight: 80, reps: 8, completed: false };
   assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), '');
-  // Sin series previas con valor → usa prefilled
-  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 0, 'weight'), 80);
-  // Serie 0 tiene valor → la serie 1 lo hereda
-  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 80);
+});
+
+test('getWorkoutSetInputValue: set sin editar en draft muestra vacío', () => {
+  const set = { weight: 80, reps: 8, completed: false };
+  assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), '');
+});
+
+test('getWorkoutSetInputValue: set completado siempre muestra valor', () => {
+  const set = { weight: 80, reps: 8, completed: true };
+  assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), 80);
+  assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), 80);
+});
+
+test('getWorkoutSetInputValue: set userEdited muestra valor aunque no completado', () => {
+  const set = { weight: 90, reps: 10, completed: false, userEdited: true };
+  assert.equal(getWorkoutSetInputValue('draft', set, 'weight'), 90);
+  assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), 90);
+});
+
+test('getWorkoutSetInputValue: in_progress sin editar muestra valor (compatibilidad)', () => {
+  const set = { weight: 80, reps: 8, completed: false };
   assert.equal(getWorkoutSetInputValue('in_progress', set, 'weight'), 80);
 });
 
-test('getWorkoutSetPlaceholder propagates entered weight to subsequent sets', () => {
+// ── getWorkoutSetPlaceholder ──────────────────────────────────────────────────
+
+test('getWorkoutSetPlaceholder: usa prefilled si no hay series editadas previas', () => {
+  const prefilledSets = [{ weight: 50, reps: 10 }, { weight: 50, reps: 10 }];
+  const sets = [
+    { weight: 50, reps: 10, completed: false }, // prefilled, no editado
+    { weight: null, reps: null, completed: false },
+  ];
+  // No propaga el 50 de set 0 porque no está editado ni completado
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 50);
+});
+
+test('getWorkoutSetPlaceholder: propaga peso de serie completada', () => {
   const prefilledSets = [{ weight: 50, reps: 10 }, { weight: 50, reps: 10 }, { weight: 50, reps: 10 }];
   const sets = [
     { weight: 60, reps: 10, completed: true },
     { weight: null, reps: null, completed: false },
     { weight: null, reps: null, completed: false },
   ];
-
-  // Set 0: no hay previas con valor, cae al prefilled
-  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 0, 'weight'), 50);
-  // Set 1: serie anterior tiene 60 → placeholder = 60
-  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 60);
-  // Set 2: serie anterior (índice 1) no tiene valor, retrocede al índice 0 que sí tiene 60
-  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 2, 'weight'), 60);
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 0, 'weight'), 50); // sin previas
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 60); // propaga completada
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 2, 'weight'), 60); // retrocede al 60
 });
 
-test('getWorkoutSetSuggestions: sin datos previos ni histórico devuelve vacío', () => {
-  const sets = [{ weight: null, reps: null, completed: false }];
-  assert.deepEqual(getWorkoutSetSuggestions([], sets, 0, 'weight', 'in_progress'), []);
+test('getWorkoutSetPlaceholder: propaga peso de serie userEdited', () => {
+  const prefilledSets = [{ weight: 50, reps: 10 }, { weight: 50, reps: 10 }];
+  const sets = [
+    { weight: 75, reps: 10, completed: false, userEdited: true },
+    { weight: null, reps: null, completed: false },
+  ];
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 75);
+});
+
+// ── getWorkoutSetSuggestions ──────────────────────────────────────────────────
+
+test('getWorkoutSetSuggestions: sin datos devuelve vacío', () => {
+  assert.deepEqual(getWorkoutSetSuggestions([], [], 0, 'weight'), []);
+});
+
+test('getWorkoutSetSuggestions: campo null devuelve vacío', () => {
+  assert.deepEqual(getWorkoutSetSuggestions([], [], 0, null), []);
 });
 
 test('getWorkoutSetSuggestions: primera serie solo usa histórico prefilled', () => {
   const prefilledSets = [{ weight: 80, reps: 8 }];
   const sets = [{ weight: null, reps: null, completed: false }];
-  assert.deepEqual(getWorkoutSetSuggestions(prefilledSets, sets, 0, 'weight', 'in_progress'), [80]);
+  assert.deepEqual(getWorkoutSetSuggestions(prefilledSets, sets, 0, 'weight'), [80]);
 });
 
-test('getWorkoutSetSuggestions: serie siguiente muestra peso anterior como primera sugerencia', () => {
+test('getWorkoutSetSuggestions: ignora set prefilled sin editar ni completar', () => {
+  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [
+    { weight: 80, reps: 8, completed: false }, // prefilled, NO userEdited
+    { weight: null, reps: null, completed: false },
+  ];
+  // El set 0 no cuenta como "introducido" → solo sale el histórico
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight');
+  assert.equal(s.length, 1);
+  assert.equal(s[0], 80);
+});
+
+test('getWorkoutSetSuggestions: set userEdited aparece como primera sugerencia', () => {
+  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [
+    { weight: 90, reps: 8, completed: false, userEdited: true },
+    { weight: null, reps: null, completed: false },
+  ];
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight');
+  assert.equal(s[0], 90); // editado por usuario
+  assert.equal(s[1], 80); // histórico distinto
+  assert.equal(s.length, 2);
+});
+
+test('getWorkoutSetSuggestions: set completado aparece como primera sugerencia', () => {
   const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
   const sets = [
     { weight: 90, reps: 8, completed: true },
     { weight: null, reps: null, completed: false },
   ];
-  // Primera sugerencia: 90 (introducido). Segunda: 80 (histórico distinto)
-  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'in_progress');
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight');
   assert.equal(s[0], 90);
   assert.equal(s[1], 80);
   assert.equal(s.length, 2);
 });
 
-test('getWorkoutSetSuggestions: no duplica si el peso anterior coincide con el histórico', () => {
+test('getWorkoutSetSuggestions: no duplica si peso anterior == histórico', () => {
   const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
   const sets = [
     { weight: 80, reps: 8, completed: true },
     { weight: null, reps: null, completed: false },
   ];
-  // El peso anterior (80) == histórico (80) → solo una sugerencia
-  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'in_progress');
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight');
   assert.equal(s.length, 1);
   assert.equal(s[0], 80);
-});
-
-test('getWorkoutSetSuggestions: ignora series previas con valor null o vacío', () => {
-  const prefilledSets = [{ weight: 70, reps: 8 }, { weight: 70, reps: 8 }, { weight: 70, reps: 8 }];
-  const sets = [
-    { weight: null, reps: null, completed: false },
-    { weight: null, reps: null, completed: false },
-    { weight: null, reps: null, completed: false },
-  ];
-  // Todas vacías → solo histórico
-  const s = getWorkoutSetSuggestions(prefilledSets, sets, 2, 'weight', 'in_progress');
-  assert.equal(s.length, 1);
-  assert.equal(s[0], 70);
-});
-
-test('getWorkoutSetSuggestions: campo null en focusedField devuelve vacío', () => {
-  const s = getWorkoutSetSuggestions([], [], 0, null, 'in_progress');
-  assert.deepEqual(s, []);
-});
-
-test('getWorkoutSetSuggestions: en not_started ignora valores prefilled de sets anteriores', () => {
-  // En not_started, sets[i].weight viene del histórico, no del usuario
-  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
-  const sets = [
-    { weight: 80, reps: 8, completed: false }, // prefilled, no introducido por el usuario
-    { weight: null, reps: null, completed: false },
-  ];
-  // No debe aparecer 80 como "serie anterior" porque el workout no ha empezado
-  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'not_started');
-  // Solo debería salir el histórico prefilled del índice 1
-  assert.equal(s.length, 1);
-  assert.equal(s[0], 80);
-});
-
-test('getWorkoutSetSuggestions: set completado en not_started sí cuenta como usuario', () => {
-  const prefilledSets = [{ weight: 90, reps: 8 }, { weight: 80, reps: 8 }];
-  const sets = [
-    { weight: 90, reps: 8, completed: true }, // completado = introducido por el usuario
-    { weight: null, reps: null, completed: false },
-  ];
-  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'not_started');
-  assert.equal(s[0], 90); // serie anterior completada
-  assert.equal(s[1], 80); // histórico distinto
-  assert.equal(s.length, 2);
 });

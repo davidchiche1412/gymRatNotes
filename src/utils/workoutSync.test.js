@@ -115,6 +115,7 @@ test('updateWorkoutSetValue stores numeric values and uncompletes the set', () =
     reps: 8,
     duration: null,
     completed: false,
+    userEdited: true,
   });
 });
 

@@ -108,7 +108,7 @@ export default function HomePage() {
                   const isFocused = focusedSet?.exIdx === exIdx && focusedSet?.si === si;
                   const focusedField = isFocused ? focusedSet.field : null;
                   const suggestions = isFocused
-                    ? getWorkoutSetSuggestions(exData.prefilledSets, exData.sets, si, focusedField, todayWorkout.status)
+                    ? getWorkoutSetSuggestions(exData.prefilledSets, exData.sets, si, focusedField)
                     : [];
 
                   return (
@@ -184,7 +184,10 @@ export default function HomePage() {
                           {suggestions.map((val, idx) => (
                             <button
                               key={idx}
-                              onMouseDown={() => handleSetChange(exIdx, si, focusedField, String(val))}
+                              onMouseDown={(e) => {
+                                e.preventDefault(); // evita que el input pierda el foco
+                                handleSetChange(exIdx, si, focusedField, String(val));
+                              }}
                               className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                             >
                               {val}

@@ -50,33 +50,33 @@ export function getTodayWorkoutProgress(todayWorkout) {
 }
 
 export function getWorkoutSetInputValue(workoutStatus, set, field) {
-  if (workoutStatus === 'not_started' && !set.completed) return '';
-  return set[field] ?? '';
+  // Muestra el valor solo si el usuario lo ha introducido explícitamente o la sesión está avanzada
+  if (set.completed || set.userEdited) return set[field] ?? '';
+  if (workoutStatus === 'in_progress' || workoutStatus === 'finished') return set[field] ?? '';
+  return '';
 }
 
 export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {
-  // Usa el último valor introducido en series anteriores del mismo ejercicio
+  // Solo propaga valores de series que el usuario ha editado o completado
   for (let i = setIndex - 1; i >= 0; i--) {
-    const val = sets?.[i]?.[field];
+    const s = sets?.[i];
+    if (!s || (!s.completed && !s.userEdited)) continue;
+    const val = s[field];
     if (val != null && val !== '') return val;
   }
   return prefilledSets?.[setIndex]?.[field] ?? '—';
 }
 
-export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field, workoutStatus) {
+export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field) {
   if (!field) return [];
   const seen = new Set();
   const suggestions = [];
 
-  // Solo cuenta como "introducido" si la serie está completada o el workout está en curso
-  // (en not_started los valores de sets son prefilled, no del usuario)
-  const isUserEntered = (set) =>
-    set.completed || workoutStatus === 'in_progress' || workoutStatus === 'draft';
-
+  // Solo cuenta como "introducido por el usuario" si la serie fue editada o completada
   for (let i = setIndex - 1; i >= 0; i--) {
-    const prevSet = sets?.[i];
-    if (!prevSet || !isUserEntered(prevSet)) continue;
-    const val = prevSet[field];
+    const s = sets?.[i];
+    if (!s || (!s.completed && !s.userEdited)) continue;
+    const val = s[field];
     if (val != null && val !== '') {
       if (!seen.has(val)) { seen.add(val); suggestions.push(val); }
       break;
