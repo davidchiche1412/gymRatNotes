@@ -19,10 +19,9 @@ export async function fetchSharedRoutine(routineId) {
 }
 
 function generatePlanId() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let id = 'plan-';
-  for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
-  return id;
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  return 'plan-' + hex;
 }
 
 export async function publishSchedule(scheduleData) {

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { addRoutine, deleteRoutineAndClearSchedule, getRoutines, updateRoutine } from '../db/queries/routines';
 import { getWeeklySchedule, updateScheduleRoutine } from '../db/queries/weeklySchedule';
 import { publishRoutine } from '../db/queries/sharedRoutines';
-import { serializeRoutineForSharing } from '../utils/shareRoutine';
+import { serializeRoutineForSharing, validateImportedRoutine, validateImportedSchedule } from '../utils/shareRoutine';
 
 export function useRoutines() {
   const [routines, setRoutines] = useState([]);
@@ -48,11 +48,14 @@ export function useRoutines() {
   };
 
   const importRoutine = async (routineData) => {
+    const validated = validateImportedRoutine(routineData);
+    if (!validated) throw new Error('Invalid routine data');
+
     await addRoutine({
       id: uuidv4(),
-      name: routineData.name,
-      exercises: routineData.exercises,
-      restTime: routineData.restTime,
+      name: validated.name,
+      exercises: validated.exercises,
+      restTime: validated.restTime,
       updatedAt: Date.now(),
     });
     await loadRoutines();
@@ -65,9 +68,11 @@ export function useRoutines() {
   };
 
   const importSchedule = async (scheduleData) => {
-    // Crear rutinas nuevas y mapear día → nuevo id
+    const validated = validateImportedSchedule(scheduleData);
+    if (!validated) throw new Error('Invalid schedule data');
+
     const dayRoutineMap = {};
-    for (const entry of scheduleData) {
+    for (const entry of validated) {
       if (!entry.routine) {
         dayRoutineMap[entry.day] = null;
         continue;

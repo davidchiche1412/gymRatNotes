@@ -111,10 +111,10 @@ export default function Layout() {
     <div className="flex flex-col h-full text-text">
       {showInstallBanner && installPrompt && (
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary text-white text-sm">
-          <span className="font-medium">Instalar GymRat Notes</span>
+          <span className="font-medium">{t('app.install')}</span>
           <div className="flex gap-2">
-            <button onClick={() => setShowInstallBanner(false)} className="px-3 py-1 rounded-lg text-white/70 text-xs">Ahora no</button>
-            <button onClick={handleInstall} className="px-3 py-1 bg-white text-primary rounded-lg font-semibold text-xs">Instalar</button>
+            <button onClick={() => setShowInstallBanner(false)} className="px-3 py-1 rounded-lg text-white/70 text-xs">{t('app.notNow')}</button>
+            <button onClick={handleInstall} className="px-3 py-1 bg-white text-primary rounded-lg font-semibold text-xs">{t('app.install')}</button>
           </div>
         </div>
       )}

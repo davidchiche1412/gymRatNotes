@@ -1,6 +1,8 @@
 {
   "app": {
-    "name": "GymRat Notes"
+    "name": "GymRat Notes",
+    "install": "Instalar GymRat Notes",
+    "notNow": "Ahora no"
   },
   "nav": {
     "today": "Hoy",

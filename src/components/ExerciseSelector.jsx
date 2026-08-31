@@ -35,7 +35,7 @@ export default function ExerciseSelector({ onSelect, onClose }) {
       nameEN: newName.trim(),
       type: newType,
       muscleGroup: newMuscle,
-      movementType: newMuscle === 'core' ? 'core' : newMuscle === 'legs' || newMuscle === 'glutes' ? 'legs' : newType === 'weight' ? 'push' : 'push',
+      movementType: newMuscle === 'core' ? 'core' : (newMuscle === 'legs' || newMuscle === 'glutes') ? 'legs' : 'push',
       isCustom: true,
     };
     await addExercise(exercise);
