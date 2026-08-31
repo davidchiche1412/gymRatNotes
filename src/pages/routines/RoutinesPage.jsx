@@ -6,6 +6,7 @@ import RoutineEditor from './RoutineEditor';
 import WeeklySchedule from './WeeklySchedule';
 import { useRoutines } from '../../hooks/useRoutines';
 import { fetchSharedRoutine, fetchSharedSchedule } from '../../db/queries/sharedRoutines';
+import { decodeSchedule } from '../../utils/shareRoutine';
 
 export default function RoutinesPage() {
   const { t } = useTranslation();
@@ -61,7 +62,9 @@ export default function RoutinesPage() {
     if (!trimmed) return;
     try {
       if (trimmed.startsWith('plan-')) {
-        const scheduleData = await fetchSharedSchedule(trimmed);
+        // Decodificar localmente primero, fallback a Supabase
+        let scheduleData = decodeSchedule(trimmed);
+        if (!scheduleData) scheduleData = await fetchSharedSchedule(trimmed);
         if (!scheduleData) {
           setImportFeedback(t('routines.importError'));
         } else {
