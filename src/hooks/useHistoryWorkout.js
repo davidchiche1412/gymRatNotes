@@ -4,8 +4,12 @@ import { getExercisesByIds } from '../db/queries/exercises';
 import { deleteWorkout, getWorkouts, saveWorkout } from '../db/queries/workouts';
 
 async function getHistoryData() {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayCutoff = todayStart.getTime();
+
   const all = (await getWorkouts())
-    .filter(shouldShowWorkoutInHistory)
+    .filter(w => shouldShowWorkoutInHistory(w) && w.date < todayCutoff)
     .sort((a, b) => b.date - a.date);
 
   const ids = [...new Set(all.flatMap(w => w.exercises.map(e => e.exerciseId)))];
