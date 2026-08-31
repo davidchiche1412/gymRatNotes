@@ -120,10 +120,13 @@ export default function RoutinesPage() {
               className="bg-surface rounded-xl p-4 border border-border active:scale-[0.98] transition-all cursor-pointer hover:border-primary/40"
             >
               <div className="flex justify-between items-start">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold">{r.name}</p>
                   <p className="text-xs text-text-secondary mt-0.5">
                     {r.exercises.length} {t('routines.exercises')}
+                  </p>
+                  <p className="text-[10px] text-text-secondary/50 mt-0.5 font-mono truncate">
+                    ID: {r.id}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
