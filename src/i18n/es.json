@@ -92,7 +92,9 @@
     "importSuccess": "¡Rutina importada!",
     "importError": "No se encontró la rutina",
     "shareError": "Error al compartir",
-    "shareUnavailable": "Inicia sesión para compartir"
+    "shareUnavailable": "Inicia sesión para compartir",
+    "shareSchedule": "Compartir programación",
+    "scheduleCopied": "¡Programación copiada!"
   },
   "exercises": {
     "title": "Ejercicios",

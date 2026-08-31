@@ -1,13 +1,44 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWeeklySchedule } from '../../hooks/useWeeklySchedule';
+import { serializeRoutineForSharing } from '../../utils/shareRoutine';
 
 export default function WeeklySchedule({ routines }) {
   const { t } = useTranslation();
   const { schedule, changeScheduleRoutine } = useWeeklySchedule();
+  const [feedback, setFeedback] = useState(null);
+
+  const handleShareSchedule = async () => {
+    const sorted = [...schedule].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+    const data = sorted.map(s => {
+      const routine = routines.find(r => r.id === s.routineId);
+      return {
+        day: s.dayOfWeek,
+        routine: routine ? { id: routine.id, ...serializeRoutineForSharing(routine) } : null,
+      };
+    });
+
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(data));
+      setFeedback(t('routines.scheduleCopied'));
+    } catch {
+      setFeedback(t('routines.shareError'));
+    }
+    setTimeout(() => setFeedback(null), 2000);
+  };
 
   return (
     <div className="mt-6">
-      <h2 className="text-lg font-semibold mb-3">{t('routines.weeklySchedule')}</h2>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-semibold">{t('routines.weeklySchedule')}</h2>
+        <button
+          onClick={handleShareSchedule}
+          className="text-xs px-2 py-1 text-text-secondary hover:text-primary transition-colors"
+          title={t('routines.shareSchedule')}
+        >
+          {feedback || '📋 ' + t('routines.shareSchedule')}
+        </button>
+      </div>
       <div className="space-y-2">
         {[0, 1, 2, 3, 4, 5, 6].map(day => {
           const daySchedule = schedule.find(s => s.dayOfWeek === day);

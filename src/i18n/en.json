@@ -92,7 +92,9 @@
     "importSuccess": "Routine imported!",
     "importError": "Routine not found",
     "shareError": "Error sharing",
-    "shareUnavailable": "Sign in to share"
+    "shareUnavailable": "Sign in to share",
+    "shareSchedule": "Share schedule",
+    "scheduleCopied": "Schedule copied!"
   },
   "exercises": {
     "title": "Exercises",
