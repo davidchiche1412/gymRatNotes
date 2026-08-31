@@ -1,6 +1,4 @@
-function getLocale(language) {
-  return language === 'es' ? 'es-ES' : 'en-US';
-}
+import { getLocale } from './formatDate.js';
 
 export function getExerciseIdsWithWeightData(workouts) {
   return new Set(workouts.flatMap(workout =>

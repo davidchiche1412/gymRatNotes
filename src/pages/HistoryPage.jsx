@@ -5,6 +5,7 @@ import { useModal } from '../hooks/useModal';
 import { WORKOUT_STATUS, getWorkoutStatus } from '../utils/workoutSync';
 import { useHistoryWorkout } from '../hooks/useHistoryWorkout';
 import { getExerciseNameById } from '../utils/exerciseName';
+import { formatDate } from '../utils/formatDate';
 
 export default function HistoryPage() {
   const { t, i18n } = useTranslation();
@@ -27,14 +28,7 @@ export default function HistoryPage() {
     await finishHistoryWorkout(workout);
   };
 
-  const formatDate = (ts) => {
-    return new Date(ts).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+
 
   const getMuscleGroups = (workout) => {
     const groups = new Set();
@@ -73,7 +67,7 @@ export default function HistoryPage() {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-semibold text-sm">{formatDate(w.date)}</p>
+                    <p className="font-semibold text-sm">{formatDate(w.date, i18n.language)}</p>
                     <p className="text-xs text-text-secondary mt-0.5">
                       {t('history.exercises', { count: w.exercises.length })}
                     </p>

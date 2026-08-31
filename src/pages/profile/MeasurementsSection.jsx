@@ -4,6 +4,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import Modal from '../../components/Modal';
 import { useModal } from '../../hooks/useModal';
 import { useMeasurements } from '../../hooks/useMeasurements';
+import { formatDate, getLocale } from '../../utils/formatDate';
 
 export default function MeasurementsSection() {
   const { t, i18n } = useTranslation();
@@ -11,15 +12,12 @@ export default function MeasurementsSection() {
   const [showFieldEditor, setShowFieldEditor] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState({});
-  const [editingMeasurementId, setEditingMeasurementId] = useState(null);
-  const [editingMeasurementDate, setEditingMeasurementDate] = useState(null);
-  const [editingMeasurementCreatedAt, setEditingMeasurementCreatedAt] = useState(null);
+  const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldUnit, setNewFieldUnit] = useState('cm');
   const { modal, confirm } = useModal();
   const { measurements, fields, addField, removeField, saveMeasurement, deleteMeasurement } = useMeasurements();
 
-  const locale = i18n.language === 'es' ? 'es-ES' : 'en-US';
 
   const handleAddField = async () => {
     await addField(newFieldName, newFieldUnit);
@@ -45,9 +43,7 @@ export default function MeasurementsSection() {
   const resetForm = () => {
     setForm({});
     setShowForm(false);
-    setEditingMeasurementId(null);
-    setEditingMeasurementDate(null);
-    setEditingMeasurementCreatedAt(null);
+    setEditingMeasurement(null);
   };
 
   const handleEdit = (measurement) => {
@@ -58,18 +54,16 @@ export default function MeasurementsSection() {
     });
 
     setForm(nextForm);
-    setEditingMeasurementId(measurement.id);
-    setEditingMeasurementDate(measurement.date);
-    setEditingMeasurementCreatedAt(measurement.createdAt ?? null);
+    setEditingMeasurement({ id: measurement.id, date: measurement.date, createdAt: measurement.createdAt ?? null });
     setShowForm(true);
   };
 
   const handleSave = async () => {
     await saveMeasurement({
       ...form,
-      id: editingMeasurementId,
-      date: editingMeasurementDate,
-      createdAt: editingMeasurementCreatedAt,
+      id: editingMeasurement?.id,
+      date: editingMeasurement?.date,
+      createdAt: editingMeasurement?.createdAt,
     });
     resetForm();
   };
@@ -86,12 +80,6 @@ export default function MeasurementsSection() {
     if (expandedId === id) setExpandedId(null);
   };
 
-  const formatDate = (ts) => {
-    return new Date(ts).toLocaleDateString(locale, {
-      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-    });
-  };
-
   const getSummary = (m) => {
     const parts = [];
     if (m.weight != null) parts.push(`${m.weight} kg`);
@@ -104,7 +92,7 @@ export default function MeasurementsSection() {
     .filter(m => m.weight != null)
     .sort((a, b) => a.date - b.date)
     .map(m => ({
-      date: new Date(m.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
+      date: new Date(m.date).toLocaleDateString(getLocale(i18n.language), { month: 'short', day: 'numeric' }),
       weight: m.weight,
     }));
 
@@ -238,7 +226,7 @@ export default function MeasurementsSection() {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-semibold text-sm">{formatDate(m.date)}</p>
+                    <p className="font-semibold text-sm">{formatDate(m.date, i18n.language)}</p>
                     <p className="text-xs text-text-secondary mt-0.5">{getSummary(m)}</p>
                     {m.weight != null && (
                       <p className="text-xs text-primary mt-0.5">⚖️ {m.weight} kg</p>
