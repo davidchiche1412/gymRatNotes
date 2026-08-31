@@ -62,3 +62,26 @@ export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {
   }
   return prefilledSets?.[setIndex]?.[field] ?? '—';
 }
+
+export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field) {
+  const seen = new Set();
+  const suggestions = [];
+
+  // Último valor introducido en series anteriores de esta sesión
+  for (let i = setIndex - 1; i >= 0; i--) {
+    const val = sets?.[i]?.[field];
+    if (val != null && val !== '') {
+      if (!seen.has(val)) { seen.add(val); suggestions.push(val); }
+      break;
+    }
+  }
+
+  // Valor histórico prefilled para esta serie
+  const historical = prefilledSets?.[setIndex]?.[field];
+  if (historical != null && historical !== '' && !seen.has(historical)) {
+    seen.add(historical);
+    suggestions.push(historical);
+  }
+
+  return suggestions;
+}

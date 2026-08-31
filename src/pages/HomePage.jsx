@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../components/Modal';
 import DayOff from '../components/DayOff';
 import Loading from '../components/Loading';
 import { useTodayWorkout } from '../hooks/useTodayWorkout';
 import { getExerciseName } from '../utils/exerciseName';
-import { getWorkoutSetInputValue, getWorkoutSetPlaceholder } from '../utils/todayWorkoutView';
+import { getWorkoutSetInputValue, getWorkoutSetPlaceholder, getWorkoutSetSuggestions } from '../utils/todayWorkoutView';
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
@@ -23,6 +24,8 @@ export default function HomePage() {
     handleToggleComplete,
     handleResetWorkout,
   } = useTodayWorkout();
+
+  const [focusedSet, setFocusedSet] = useState(null);
 
   if (loading) { return <Loading />; }
 
@@ -101,71 +104,97 @@ export default function HomePage() {
 
               {/* Series */}
               <div className="px-4 pb-3 space-y-1">
-                {exData.sets.map((set, si) => (
-                  <div key={si} className="flex items-center gap-2">
-                    <span className={`text-[11px] w-6 text-center font-medium ${
-                      set.completed ? 'text-primary' : 'text-text-secondary'
-                    }`}>{si + 1}</span>
+                {exData.sets.map((set, si) => {
+                  const isFocused = focusedSet?.exIdx === exIdx && focusedSet?.si === si;
+                  const focusedField = isFocused ? focusedSet.field : null;
+                  const suggestions = isFocused
+                    ? getWorkoutSetSuggestions(exData.prefilledSets, exData.sets, si, focusedField)
+                    : [];
 
-                    {(exData.type === 'weight' || exData.type === 'bodyweight') && (
-                      <>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'weight')}
-                          value={getWorkoutSetInputValue(todayWorkout.status, set, 'weight')}
-                          onChange={e => handleSetChange(exIdx, si, 'weight', e.target.value)}
-                          
-                          className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
-                            set.completed
-                              ? 'bg-primary/10 border-primary/20 text-primary'
-                              : 'bg-bg border-border'
-                          }`}
-                        />
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'reps')}
-                          value={getWorkoutSetInputValue(todayWorkout.status, set, 'reps')}
-                          onChange={e => handleSetChange(exIdx, si, 'reps', e.target.value)}
-                          
-                          className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
-                            set.completed
-                              ? 'bg-primary/10 border-primary/20 text-primary'
-                              : 'bg-bg border-border'
-                          }`}
-                        />
-                      </>
-                    )}
-                    {exData.type === 'timed' && (
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'duration')}
-                        value={getWorkoutSetInputValue(todayWorkout.status, set, 'duration')}
-                        onChange={e => handleSetChange(exIdx, si, 'duration', e.target.value)}
-                        
-                        className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
-                          set.completed
-                            ? 'bg-primary/10 border-primary/20 text-primary'
-                            : 'bg-bg border-border'
-                        }`}
-                      />
-                    )}
+                  return (
+                    <div key={si} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] w-6 text-center font-medium ${
+                          set.completed ? 'text-primary' : 'text-text-secondary'
+                        }`}>{si + 1}</span>
 
-                    <button
-                      onClick={() => handleToggleComplete(exIdx, si)}
-                      
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${
-                        set.completed
-                          ? 'bg-primary text-white hover:bg-primary-dark'
-                          : 'bg-bg border border-border text-text-secondary hover:border-primary hover:text-primary'
-                      } active:scale-95`}
-                    >
-                      ✓
-                    </button>
-                  </div>
-                ))}
+                        {(exData.type === 'weight' || exData.type === 'bodyweight') && (
+                          <>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'weight')}
+                              value={getWorkoutSetInputValue(todayWorkout.status, set, 'weight')}
+                              onChange={e => handleSetChange(exIdx, si, 'weight', e.target.value)}
+                              onFocus={() => setFocusedSet({ exIdx, si, field: 'weight' })}
+                              onBlur={() => setTimeout(() => setFocusedSet(null), 150)}
+                              className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
+                                set.completed
+                                  ? 'bg-primary/10 border-primary/20 text-primary'
+                                  : 'bg-bg border-border'
+                              }`}
+                            />
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'reps')}
+                              value={getWorkoutSetInputValue(todayWorkout.status, set, 'reps')}
+                              onChange={e => handleSetChange(exIdx, si, 'reps', e.target.value)}
+                              onFocus={() => setFocusedSet({ exIdx, si, field: 'reps' })}
+                              onBlur={() => setTimeout(() => setFocusedSet(null), 150)}
+                              className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
+                                set.completed
+                                  ? 'bg-primary/10 border-primary/20 text-primary'
+                                  : 'bg-bg border-border'
+                              }`}
+                            />
+                          </>
+                        )}
+                        {exData.type === 'timed' && (
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'duration')}
+                            value={getWorkoutSetInputValue(todayWorkout.status, set, 'duration')}
+                            onChange={e => handleSetChange(exIdx, si, 'duration', e.target.value)}
+                            onFocus={() => setFocusedSet({ exIdx, si, field: 'duration' })}
+                            onBlur={() => setTimeout(() => setFocusedSet(null), 150)}
+                            className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
+                              set.completed
+                                ? 'bg-primary/10 border-primary/20 text-primary'
+                                : 'bg-bg border-border'
+                            }`}
+                          />
+                        )}
+
+                        <button
+                          onClick={() => handleToggleComplete(exIdx, si)}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all ${
+                            set.completed
+                              ? 'bg-primary text-white hover:bg-primary-dark'
+                              : 'bg-bg border border-border text-text-secondary hover:border-primary hover:text-primary'
+                          } active:scale-95`}
+                        >
+                          ✓
+                        </button>
+                      </div>
+
+                      {suggestions.length > 0 && (
+                        <div className="flex gap-1 pl-8">
+                          {suggestions.map((val, idx) => (
+                            <button
+                              key={idx}
+                              onMouseDown={() => handleSetChange(exIdx, si, focusedField, String(val))}
+                              className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                            >
+                              {val}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
