@@ -4,7 +4,6 @@ import ExerciseSelector from '../../components/ExerciseSelector';
 import DraggableExerciseList from '../../components/DraggableExerciseList';
 import { getExerciseName } from '../../utils/exerciseName';
 import { useExerciseInfoMap } from '../../hooks/useExerciseInfoMap';
-import { calculateOneRepMax, findBestSetForExercise } from '../../utils/oneRepMax';
 import { getFinishedWorkouts } from '../../db/queries/workouts';
 
 function buildTargetsForType(type, previousExercise = null) {
