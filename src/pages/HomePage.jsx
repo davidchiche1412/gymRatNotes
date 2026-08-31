@@ -108,7 +108,7 @@ export default function HomePage() {
                   const isFocused = focusedSet?.exIdx === exIdx && focusedSet?.si === si;
                   const focusedField = isFocused ? focusedSet.field : null;
                   const suggestions = isFocused
-                    ? getWorkoutSetSuggestions(exData.prefilledSets, exData.sets, si, focusedField)
+                    ? getWorkoutSetSuggestions(exData.prefilledSets, exData.sets, si, focusedField, todayWorkout.status)
                     : [];
 
                   return (

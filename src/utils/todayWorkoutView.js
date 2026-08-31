@@ -63,13 +63,20 @@ export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {
   return prefilledSets?.[setIndex]?.[field] ?? '—';
 }
 
-export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field) {
+export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field, workoutStatus) {
+  if (!field) return [];
   const seen = new Set();
   const suggestions = [];
 
-  // Último valor introducido en series anteriores de esta sesión
+  // Solo cuenta como "introducido" si la serie está completada o el workout está en curso
+  // (en not_started los valores de sets son prefilled, no del usuario)
+  const isUserEntered = (set) =>
+    set.completed || workoutStatus === 'in_progress' || workoutStatus === 'draft';
+
   for (let i = setIndex - 1; i >= 0; i--) {
-    const val = sets?.[i]?.[field];
+    const prevSet = sets?.[i];
+    if (!prevSet || !isUserEntered(prevSet)) continue;
+    const val = prevSet[field];
     if (val != null && val !== '') {
       if (!seen.has(val)) { seen.add(val); suggestions.push(val); }
       break;

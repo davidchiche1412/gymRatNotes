@@ -5,6 +5,7 @@ import {
   getTodayWorkoutProgress,
   getWorkoutSetInputValue,
   getWorkoutSetPlaceholder,
+  getWorkoutSetSuggestions,
 } from './todayWorkoutView.js';
 
 test('buildTodayWorkout joins routine, workout and exercise info for the UI', () => {
@@ -92,4 +93,84 @@ test('getWorkoutSetPlaceholder propagates entered weight to subsequent sets', ()
   assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 60);
   // Set 2: serie anterior (índice 1) no tiene valor, retrocede al índice 0 que sí tiene 60
   assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 2, 'weight'), 60);
+});
+
+test('getWorkoutSetSuggestions: sin datos previos ni histórico devuelve vacío', () => {
+  const sets = [{ weight: null, reps: null, completed: false }];
+  assert.deepEqual(getWorkoutSetSuggestions([], sets, 0, 'weight', 'in_progress'), []);
+});
+
+test('getWorkoutSetSuggestions: primera serie solo usa histórico prefilled', () => {
+  const prefilledSets = [{ weight: 80, reps: 8 }];
+  const sets = [{ weight: null, reps: null, completed: false }];
+  assert.deepEqual(getWorkoutSetSuggestions(prefilledSets, sets, 0, 'weight', 'in_progress'), [80]);
+});
+
+test('getWorkoutSetSuggestions: serie siguiente muestra peso anterior como primera sugerencia', () => {
+  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [
+    { weight: 90, reps: 8, completed: true },
+    { weight: null, reps: null, completed: false },
+  ];
+  // Primera sugerencia: 90 (introducido). Segunda: 80 (histórico distinto)
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'in_progress');
+  assert.equal(s[0], 90);
+  assert.equal(s[1], 80);
+  assert.equal(s.length, 2);
+});
+
+test('getWorkoutSetSuggestions: no duplica si el peso anterior coincide con el histórico', () => {
+  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [
+    { weight: 80, reps: 8, completed: true },
+    { weight: null, reps: null, completed: false },
+  ];
+  // El peso anterior (80) == histórico (80) → solo una sugerencia
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'in_progress');
+  assert.equal(s.length, 1);
+  assert.equal(s[0], 80);
+});
+
+test('getWorkoutSetSuggestions: ignora series previas con valor null o vacío', () => {
+  const prefilledSets = [{ weight: 70, reps: 8 }, { weight: 70, reps: 8 }, { weight: 70, reps: 8 }];
+  const sets = [
+    { weight: null, reps: null, completed: false },
+    { weight: null, reps: null, completed: false },
+    { weight: null, reps: null, completed: false },
+  ];
+  // Todas vacías → solo histórico
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 2, 'weight', 'in_progress');
+  assert.equal(s.length, 1);
+  assert.equal(s[0], 70);
+});
+
+test('getWorkoutSetSuggestions: campo null en focusedField devuelve vacío', () => {
+  const s = getWorkoutSetSuggestions([], [], 0, null, 'in_progress');
+  assert.deepEqual(s, []);
+});
+
+test('getWorkoutSetSuggestions: en not_started ignora valores prefilled de sets anteriores', () => {
+  // En not_started, sets[i].weight viene del histórico, no del usuario
+  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [
+    { weight: 80, reps: 8, completed: false }, // prefilled, no introducido por el usuario
+    { weight: null, reps: null, completed: false },
+  ];
+  // No debe aparecer 80 como "serie anterior" porque el workout no ha empezado
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'not_started');
+  // Solo debería salir el histórico prefilled del índice 1
+  assert.equal(s.length, 1);
+  assert.equal(s[0], 80);
+});
+
+test('getWorkoutSetSuggestions: set completado en not_started sí cuenta como usuario', () => {
+  const prefilledSets = [{ weight: 90, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [
+    { weight: 90, reps: 8, completed: true }, // completado = introducido por el usuario
+    { weight: null, reps: null, completed: false },
+  ];
+  const s = getWorkoutSetSuggestions(prefilledSets, sets, 1, 'weight', 'not_started');
+  assert.equal(s[0], 90); // serie anterior completada
+  assert.equal(s[1], 80); // histórico distinto
+  assert.equal(s.length, 2);
 });
