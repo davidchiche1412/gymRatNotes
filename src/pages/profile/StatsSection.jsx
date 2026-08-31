@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getExerciseName } from '../../utils/exerciseName';
 import { useStats } from '../../hooks/useStats';
 
@@ -7,7 +7,6 @@ export default function StatsSection() {
   const { t, i18n } = useTranslation();
   const {
     chartData,
-    frequencyData,
     filteredPrs,
     selectedExercise,
     setSelectedExercise,
@@ -96,23 +95,6 @@ export default function StatsSection() {
               <Tooltip />
               <Line type="monotone" dataKey={dataKey} stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="text-sm text-text-secondary text-center py-4">{t('profile.noData')}</p>
-        )}
-      </div>
-
-      {/* Frequency chart */}
-      <div>
-        <h3 className="font-semibold mb-2">{t('profile.frequency')}</h3>
-        {frequencyData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={frequencyData}>
-              <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
-            </BarChart>
           </ResponsiveContainer>
         ) : (
           <p className="text-sm text-text-secondary text-center py-4">{t('profile.noData')}</p>

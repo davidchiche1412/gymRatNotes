@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { getExercises } from '../db/queries/exercises';
 import { getFinishedWorkouts } from '../db/queries/workouts';
 import {
-  buildFrequencyData,
   buildMaxWeightData,
   buildVolumeData,
   buildPersonalRecords,
@@ -14,7 +13,6 @@ import {
 
 export function useStats(language) {
   const [chartData, setChartData] = useState([]);
-  const [frequencyData, setFrequencyData] = useState([]);
   const [prs, setPrs] = useState([]);
   const [filteredPrs, setFilteredPrs] = useState([]);
   const [selectedExercise, setSelectedExercise] = useState('');
@@ -43,7 +41,6 @@ export function useStats(language) {
           ? current
           : nextExercisesWithProgress[0]?.id || ''
       ));
-      setFrequencyData(buildFrequencyData(workouts, language));
       setPrs(nextPrs);
       setMuscleGroupsWithPrs(getMuscleGroupsWithRecords(nextPrs));
     }
@@ -84,7 +81,6 @@ export function useStats(language) {
 
   return {
     chartData,
-    frequencyData,
     prs,
     filteredPrs,
     selectedExercise,
