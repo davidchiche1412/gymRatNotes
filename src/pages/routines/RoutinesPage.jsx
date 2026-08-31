@@ -5,14 +5,14 @@ import { useModal } from '../../hooks/useModal';
 import RoutineEditor from './RoutineEditor';
 import WeeklySchedule from './WeeklySchedule';
 import { useRoutines } from '../../hooks/useRoutines';
-import { fetchSharedRoutine } from '../../db/queries/sharedRoutines';
+import { fetchSharedRoutine, fetchSharedSchedule } from '../../db/queries/sharedRoutines';
 import { supabase } from '../../db/supabase';
 
 export default function RoutinesPage() {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(null);
   const { modal, confirm } = useModal();
-  const { routines, saveRoutine, deleteRoutine, importRoutine, shareRoutine } = useRoutines();
+  const { routines, saveRoutine, deleteRoutine, importRoutine, importSchedule, shareRoutine } = useRoutines();
   const [sharedFeedback, setSharedFeedback] = useState({});
   const [importId, setImportId] = useState('');
   const [importFeedback, setImportFeedback] = useState(null);
@@ -66,13 +66,24 @@ export default function RoutinesPage() {
       return;
     }
     try {
-      const data = await fetchSharedRoutine(trimmed);
-      if (!data) {
-        setImportFeedback(t('routines.importError'));
+      if (trimmed.startsWith('plan-')) {
+        const scheduleData = await fetchSharedSchedule(trimmed);
+        if (!scheduleData) {
+          setImportFeedback(t('routines.importError'));
+        } else {
+          await importSchedule(scheduleData);
+          setImportFeedback(t('routines.scheduleImported'));
+          setImportId('');
+        }
       } else {
-        await importRoutine(data);
-        setImportFeedback(t('routines.importSuccess'));
-        setImportId('');
+        const data = await fetchSharedRoutine(trimmed);
+        if (!data) {
+          setImportFeedback(t('routines.importError'));
+        } else {
+          await importRoutine(data);
+          setImportFeedback(t('routines.importSuccess'));
+          setImportId('');
+        }
       }
     } catch {
       setImportFeedback(t('routines.importError'));

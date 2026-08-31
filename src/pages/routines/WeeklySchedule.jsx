@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWeeklySchedule } from '../../hooks/useWeeklySchedule';
 import { serializeRoutineForSharing } from '../../utils/shareRoutine';
+import { publishSchedule } from '../../db/queries/sharedRoutines';
+import { supabase } from '../../db/supabase';
 
 export default function WeeklySchedule({ routines }) {
   const { t } = useTranslation();
@@ -9,17 +11,24 @@ export default function WeeklySchedule({ routines }) {
   const [feedback, setFeedback] = useState(null);
 
   const handleShareSchedule = async () => {
+    if (!supabase) {
+      setFeedback(t('routines.shareUnavailable'));
+      setTimeout(() => setFeedback(null), 2000);
+      return;
+    }
+
     const sorted = [...schedule].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
     const data = sorted.map(s => {
       const routine = routines.find(r => r.id === s.routineId);
       return {
         day: s.dayOfWeek,
-        routine: routine ? { id: routine.id, ...serializeRoutineForSharing(routine) } : null,
+        routine: routine ? serializeRoutineForSharing(routine) : null,
       };
     });
 
     try {
-      await navigator.clipboard.writeText(JSON.stringify(data));
+      const planId = await publishSchedule(data);
+      await navigator.clipboard.writeText(planId);
       setFeedback(t('routines.scheduleCopied'));
     } catch {
       setFeedback(t('routines.shareError'));
@@ -36,7 +45,7 @@ export default function WeeklySchedule({ routines }) {
           className="text-xs px-2 py-1 text-text-secondary hover:text-primary transition-colors"
           title={t('routines.shareSchedule')}
         >
-          {feedback || '📋 ' + t('routines.shareSchedule')}
+          {feedback || '\ud83d\udccb ' + t('routines.shareSchedule')}
         </button>
       </div>
       <div className="space-y-2">

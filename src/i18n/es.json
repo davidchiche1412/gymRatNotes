@@ -94,7 +94,8 @@
     "shareError": "Error al compartir",
     "shareUnavailable": "Inicia sesión para compartir",
     "shareSchedule": "Compartir programación",
-    "scheduleCopied": "¡Programación copiada!"
+    "scheduleCopied": "¡Programación copiada!",
+    "scheduleImported": "¡Programación importada con todas las rutinas!"
   },
   "exercises": {
     "title": "Ejercicios",

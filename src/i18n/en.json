@@ -94,7 +94,8 @@
     "shareError": "Error sharing",
     "shareUnavailable": "Sign in to share",
     "shareSchedule": "Share schedule",
-    "scheduleCopied": "Schedule copied!"
+    "scheduleCopied": "Schedule copied!",
+    "scheduleImported": "Schedule imported with all routines!"
   },
   "exercises": {
     "title": "Exercises",
