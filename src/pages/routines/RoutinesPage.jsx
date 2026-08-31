@@ -46,14 +46,10 @@ export default function RoutinesPage() {
 
   const handleShare = async (e, routine) => {
     e.stopPropagation();
-    if (!supabase) {
-      setSharedFeedback(prev => ({ ...prev, [routine.id]: t('routines.shareUnavailable') }));
-      setTimeout(() => setSharedFeedback(prev => ({ ...prev, [routine.id]: null })), 2000);
-      return;
-    }
     try {
-      const id = await shareRoutine(routine);
-      await navigator.clipboard.writeText(id);
+      await navigator.clipboard.writeText(routine.id);
+      // Publicar en Supabase en segundo plano si está disponible
+      if (supabase) shareRoutine(routine).catch(() => {});
       setSharedFeedback(prev => ({ ...prev, [routine.id]: t('routines.idCopied') }));
     } catch {
       setSharedFeedback(prev => ({ ...prev, [routine.id]: t('routines.shareError') }));
