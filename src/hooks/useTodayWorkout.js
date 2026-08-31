@@ -12,6 +12,7 @@ import {
   getFinishedWorkoutsNewestFirst,
   getWorkoutForRoutineSince,
   saveWorkout,
+  finalizePastWorkouts,
 } from '../db/queries/workouts';
 import {
   WORKOUT_STATUS,
@@ -71,6 +72,10 @@ async function getExistingWorkoutForToday(routine) {
 }
 
 async function loadTodayWorkoutData() {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  await finalizePastWorkouts(todayStart.getTime());
+
   const routine = await getRoutineForToday();
   if (!routine) return null;
 

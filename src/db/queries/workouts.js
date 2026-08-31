@@ -43,3 +43,19 @@ export async function replaceWorkout(oldWorkoutId, nextWorkout) {
     await db.workouts.add(withDirty(nextWorkout));
   });
 }
+
+export async function finalizePastWorkouts(beforeTimestamp) {
+  const pending = await db.workouts
+    .where('date')
+    .below(beforeTimestamp)
+    .filter(w => w.finishedAt == null || w.finishedAt === 0)
+    .toArray();
+
+  if (pending.length === 0) return 0;
+
+  const now = Date.now();
+  await db.workouts.bulkPut(
+    pending.map(w => withDirty({ ...w, status: 'finished', finishedAt: w.date, updatedAt: now }))
+  );
+  return pending.length;
+}
