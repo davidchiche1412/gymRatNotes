@@ -54,6 +54,11 @@ export function getWorkoutSetInputValue(workoutStatus, set, field) {
   return set[field] ?? '';
 }
 
-export function getWorkoutSetPlaceholder(prefilledSets, setIndex, field) {
+export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {
+  // Usa el último valor introducido en series anteriores del mismo ejercicio
+  for (let i = setIndex - 1; i >= 0; i--) {
+    const val = sets?.[i]?.[field];
+    if (val != null && val !== '') return val;
+  }
   return prefilledSets?.[setIndex]?.[field] ?? '—';
 }

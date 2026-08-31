@@ -3,10 +3,12 @@ import Modal from '../../components/Modal';
 import { useModal } from '../../hooks/useModal';
 import { playSound } from '../../utils/timerSound';
 import { useSettings } from '../../hooks/useSettings';
+import { useTimer } from '../../context/useTimer';
 
 export default function SettingsSection() {
   const { t, i18n } = useTranslation();
   const { modal, confirm, alert: showAlert } = useModal();
+  const { setRestEnabled: syncTimerRestEnabled } = useTimer();
 
   const {
     settings,
@@ -30,6 +32,7 @@ export default function SettingsSection() {
 
   const handleRestEnabledChange = async (enabled) => {
     await changeRestEnabled(enabled);
+    syncTimerRestEnabled(enabled);
   };
 
   const handleRestSoundTypeChange = async (type) => {

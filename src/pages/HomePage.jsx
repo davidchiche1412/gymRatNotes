@@ -112,7 +112,7 @@ export default function HomePage() {
                         <input
                           type="number"
                           inputMode="decimal"
-                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, si, 'weight')}
+                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'weight')}
                           value={getWorkoutSetInputValue(todayWorkout.status, set, 'weight')}
                           onChange={e => handleSetChange(exIdx, si, 'weight', e.target.value)}
                           
@@ -125,7 +125,7 @@ export default function HomePage() {
                         <input
                           type="number"
                           inputMode="numeric"
-                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, si, 'reps')}
+                          placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'reps')}
                           value={getWorkoutSetInputValue(todayWorkout.status, set, 'reps')}
                           onChange={e => handleSetChange(exIdx, si, 'reps', e.target.value)}
                           
@@ -141,7 +141,7 @@ export default function HomePage() {
                       <input
                         type="number"
                         inputMode="numeric"
-                        placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, si, 'duration')}
+                        placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'duration')}
                         value={getWorkoutSetInputValue(todayWorkout.status, set, 'duration')}
                         onChange={e => handleSetChange(exIdx, si, 'duration', e.target.value)}
                         

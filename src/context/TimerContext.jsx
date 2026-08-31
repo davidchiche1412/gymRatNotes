@@ -27,7 +27,7 @@ export function TimerProvider({ children }) {
   const dismissTimer = () => setTimerSeconds(null);
 
   return (
-    <TimerContext.Provider value={{ timerSeconds, timerKey, soundType, volume, startTimer, dismissTimer }}>
+    <TimerContext.Provider value={{ timerSeconds, timerKey, soundType, volume, startTimer, dismissTimer, setRestEnabled }}>
       {children}
     </TimerContext.Provider>
   );

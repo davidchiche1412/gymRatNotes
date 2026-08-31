@@ -67,9 +67,29 @@ test('getTodayWorkoutProgress returns totals and percentage', () => {
 
 test('workout set inputs use prefilled data as placeholders before starting', () => {
   const set = { weight: 80, reps: 8, completed: false };
-  const prefilledSets = [{ weight: 80, reps: 8 }];
+  const prefilledSets = [{ weight: 80, reps: 8 }, { weight: 80, reps: 8 }];
+  const sets = [set, { weight: null, reps: null, completed: false }];
 
   assert.equal(getWorkoutSetInputValue('not_started', set, 'weight'), '');
-  assert.equal(getWorkoutSetPlaceholder(prefilledSets, 0, 'weight'), 80);
+  // Sin series previas con valor → usa prefilled
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 0, 'weight'), 80);
+  // Serie 0 tiene valor → la serie 1 lo hereda
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 80);
   assert.equal(getWorkoutSetInputValue('in_progress', set, 'weight'), 80);
+});
+
+test('getWorkoutSetPlaceholder propagates entered weight to subsequent sets', () => {
+  const prefilledSets = [{ weight: 50, reps: 10 }, { weight: 50, reps: 10 }, { weight: 50, reps: 10 }];
+  const sets = [
+    { weight: 60, reps: 10, completed: true },
+    { weight: null, reps: null, completed: false },
+    { weight: null, reps: null, completed: false },
+  ];
+
+  // Set 0: no hay previas con valor, cae al prefilled
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 0, 'weight'), 50);
+  // Set 1: serie anterior tiene 60 → placeholder = 60
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 60);
+  // Set 2: serie anterior (índice 1) no tiene valor, retrocede al índice 0 que sí tiene 60
+  assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 2, 'weight'), 60);
 });
