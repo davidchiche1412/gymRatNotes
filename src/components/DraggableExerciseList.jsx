@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { calculateOneRepMax, findBestSetForExercise } from '../utils/oneRepMax';
 
-export default function DraggableExerciseList({ exercises, onReorder, onUpdate, onEdit, onRemove, t }) {
+export default function DraggableExerciseList({ exercises, onReorder, onUpdate, onEdit, onRemove, workouts, expanded1RM, onToggle1RM, t }) {
   const [dragIdx, setDragIdx] = useState(null);
   const [overIdx, setOverIdx] = useState(null);
   const itemRefs = useRef([]);
@@ -58,6 +59,19 @@ export default function DraggableExerciseList({ exercises, onReorder, onUpdate, 
     setDragIdx(idx);
     setOverIdx(idx);
   };
+
+  const oneRMData = useMemo(() => {
+    if (!workouts?.length) return {};
+    const data = {};
+    for (const ex of exercises) {
+      if (ex.type !== 'weight') continue;
+      const bestSet = findBestSetForExercise(workouts, ex.exerciseId);
+      if (!bestSet) continue;
+      const oneRM = calculateOneRepMax(bestSet.weight, bestSet.reps);
+      if (oneRM) data[ex.exerciseId] = { bestSet, oneRM };
+    }
+    return data;
+  }, [workouts, exercises]);
 
   return (
     <div className="space-y-2">
@@ -169,6 +183,41 @@ export default function DraggableExerciseList({ exercises, onReorder, onUpdate, 
                 </div>
               )}
             </div>
+
+            {oneRMData[ex.exerciseId] && (
+              <div className="mt-2">
+                <button
+                  onClick={() => onToggle1RM(ex.exerciseId)}
+                  className="text-xs text-primary font-medium"
+                >
+                  📊 {t('routines.oneRepMax')} {expanded1RM[ex.exerciseId] ? '▲' : '▼'}
+                </button>
+                {expanded1RM[ex.exerciseId] && (
+                  <div className="mt-1.5 bg-bg rounded-lg p-2 text-xs">
+                    <p className="text-text-secondary mb-1">
+                      {t('routines.bestSet')}: {oneRMData[ex.exerciseId].bestSet.weight}kg × {oneRMData[ex.exerciseId].bestSet.reps}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-text-secondary">Epley</p>
+                        <p className="font-semibold">{oneRMData[ex.exerciseId].oneRM.epley} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-text-secondary">Brzycki</p>
+                        <p className="font-semibold">{oneRMData[ex.exerciseId].oneRM.brzycki} kg</p>
+                      </div>
+                      <div>
+                        <p className="text-text-secondary">Lombardi</p>
+                        <p className="font-semibold">{oneRMData[ex.exerciseId].oneRM.lombardi} kg</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-text-secondary mt-1.5">
+                      {t('routines.oneRepMaxDisclaimer')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

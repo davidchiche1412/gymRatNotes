@@ -81,7 +81,18 @@
       "total": "total",
       "per_side": "por lado",
       "machine": "máquina"
-    }
+    },
+    "oneRepMax": "1RM estimado",
+    "oneRepMaxDisclaimer": "⚠️ Estimación orientativa basada en tu historial. Consulta a un profesional antes de intentar cargas máximas.",
+    "bestSet": "Mejor serie",
+    "share": "Compartir",
+    "idCopied": "¡ID copiado!",
+    "importRoutine": "Importar rutina",
+    "importPlaceholder": "Pegar ID de rutina...",
+    "importSuccess": "¡Rutina importada!",
+    "importError": "No se encontró la rutina",
+    "shareError": "Error al compartir",
+    "shareUnavailable": "Inicia sesión para compartir"
   },
   "exercises": {
     "title": "Ejercicios",
@@ -169,7 +180,13 @@
     "measurementCount": "medidas",
     "editFields": "Editar campos",
     "editFieldsDescription": "Añade o quita zonas de medición",
-    "newFieldName": "Nombre del campo"
+    "newFieldName": "Nombre del campo",
+    "volume": "Volumen total",
+    "volumeDescription": "Suma del peso × repeticiones de todas las series en cada entrenamiento.",
+    "timeRange3m": "3m",
+    "timeRange6m": "6m",
+    "timeRange12m": "12m",
+    "metric": "Métrica"
   },
   "days": {
     "0": "Lunes",

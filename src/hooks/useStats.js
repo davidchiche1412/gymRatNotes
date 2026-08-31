@@ -4,18 +4,22 @@ import { getFinishedWorkouts } from '../db/queries/workouts';
 import {
   buildFrequencyData,
   buildMaxWeightData,
+  buildVolumeData,
   buildPersonalRecords,
   filterRecordsByMuscleGroup,
+  filterWorkoutsByTimeRange,
   getExerciseIdsWithWeightData,
   getMuscleGroupsWithRecords,
 } from '../utils/stats';
 
 export function useStats(language) {
-  const [maxWeightData, setMaxWeightData] = useState([]);
+  const [chartData, setChartData] = useState([]);
   const [frequencyData, setFrequencyData] = useState([]);
   const [prs, setPrs] = useState([]);
   const [filteredPrs, setFilteredPrs] = useState([]);
   const [selectedExercise, setSelectedExercise] = useState('');
+  const [selectedMetric, setSelectedMetric] = useState('maxWeight');
+  const [timeRange, setTimeRange] = useState(3);
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState('');
   const [exercises, setExercises] = useState([]);
   const [exercisesWithProgress, setExercisesWithProgress] = useState([]);
@@ -52,7 +56,7 @@ export function useStats(language) {
 
   useEffect(() => {
     if (!selectedExercise) {
-      setMaxWeightData([]);
+      setChartData([]);
       return;
     }
     let cancelled = false;
@@ -61,26 +65,34 @@ export function useStats(language) {
       const workouts = await getFinishedWorkouts();
       if (cancelled) return;
 
-      setMaxWeightData(buildMaxWeightData(workouts, selectedExercise, language));
+      const filtered = filterWorkoutsByTimeRange(workouts, timeRange);
+      const data = selectedMetric === 'volume'
+        ? buildVolumeData(filtered, selectedExercise, language)
+        : buildMaxWeightData(filtered, selectedExercise, language);
+      setChartData(data);
     }
 
     load();
     return () => {
       cancelled = true;
     };
-  }, [language, selectedExercise]);
+  }, [language, selectedExercise, selectedMetric, timeRange]);
 
   useEffect(() => {
     setFilteredPrs(filterRecordsByMuscleGroup(prs, selectedMuscleGroup));
   }, [prs, selectedMuscleGroup]);
 
   return {
-    maxWeightData,
+    chartData,
     frequencyData,
     prs,
     filteredPrs,
     selectedExercise,
     setSelectedExercise,
+    selectedMetric,
+    setSelectedMetric,
+    timeRange,
+    setTimeRange,
     selectedMuscleGroup,
     setSelectedMuscleGroup,
     exercises,

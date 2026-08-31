@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import ExerciseSelector from '../../components/ExerciseSelector';
 import DraggableExerciseList from '../../components/DraggableExerciseList';
 import { getExerciseName } from '../../utils/exerciseName';
 import { useExerciseInfoMap } from '../../hooks/useExerciseInfoMap';
+import { calculateOneRepMax, findBestSetForExercise } from '../../utils/oneRepMax';
+import { getFinishedWorkouts } from '../../db/queries/workouts';
 
 function buildTargetsForType(type, previousExercise = null) {
   if (type === 'timed') {
@@ -30,7 +32,13 @@ export default function RoutineEditor({ routine, onSave, onCancel }) {
   const [restTime, setRestTime] = useState(routine?.restTime ?? 60);
   const [showSelector, setShowSelector] = useState(false);
   const [editingExerciseIndex, setEditingExerciseIndex] = useState(null);
+  const [workouts, setWorkouts] = useState([]);
+  const [expanded1RM, setExpanded1RM] = useState({});
   const exerciseInfoMap = useExerciseInfoMap(exercises);
+
+  useEffect(() => {
+    getFinishedWorkouts().then(setWorkouts);
+  }, []);
 
   const handleSelectExercise = (exercise) => {
     if (editingExerciseIndex !== null) {
@@ -127,6 +135,9 @@ export default function RoutineEditor({ routine, onSave, onCancel }) {
           setShowSelector(true);
         }}
         onRemove={handleRemoveExercise}
+        workouts={workouts}
+        expanded1RM={expanded1RM}
+        onToggle1RM={(id) => setExpanded1RM(prev => ({ ...prev, [id]: !prev[id] }))}
         t={t}
       />
 

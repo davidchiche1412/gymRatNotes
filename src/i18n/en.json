@@ -81,7 +81,18 @@
       "total": "total",
       "per_side": "per side",
       "machine": "machine"
-    }
+    },
+    "oneRepMax": "Estimated 1RM",
+    "oneRepMaxDisclaimer": "⚠️ Estimate based on your training history. Consult a professional before attempting maximum loads.",
+    "bestSet": "Best set",
+    "share": "Share",
+    "idCopied": "ID copied!",
+    "importRoutine": "Import routine",
+    "importPlaceholder": "Paste routine ID...",
+    "importSuccess": "Routine imported!",
+    "importError": "Routine not found",
+    "shareError": "Error sharing",
+    "shareUnavailable": "Sign in to share"
   },
   "exercises": {
     "title": "Exercises",
@@ -169,7 +180,13 @@
     "measurementCount": "measurements",
     "editFields": "Edit fields",
     "editFieldsDescription": "Add or remove measurement zones",
-    "newFieldName": "Field name"
+    "newFieldName": "Field name",
+    "volume": "Total Volume",
+    "volumeDescription": "Sum of weight × reps across all sets in each workout.",
+    "timeRange3m": "3m",
+    "timeRange6m": "6m",
+    "timeRange12m": "12m",
+    "metric": "Metric"
   },
   "days": {
     "0": "Monday",

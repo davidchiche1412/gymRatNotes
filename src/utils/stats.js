@@ -82,3 +82,30 @@ export function filterRecordsByMuscleGroup(records, muscleGroup) {
   if (!muscleGroup) return records;
   return records.filter(record => record.exercise.muscleGroup === muscleGroup);
 }
+
+export function buildVolumeData(workouts, selectedExercise, language) {
+  const locale = getLocale(language);
+  const data = [];
+
+  workouts.slice().sort((a, b) => a.date - b.date).forEach(workout => {
+    const exercise = workout.exercises.find(ex => ex.exerciseId === selectedExercise);
+    if (!exercise) return;
+
+    const volume = exercise.sets
+      .filter(set => set.weight != null && set.reps != null)
+      .reduce((sum, set) => sum + set.weight * set.reps, 0);
+    if (volume > 0) {
+      data.push({
+        date: new Date(workout.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
+        volume,
+      });
+    }
+  });
+
+  return data;
+}
+
+export function filterWorkoutsByTimeRange(workouts, months) {
+  const cutoff = Date.now() - months * 30 * 24 * 60 * 60 * 1000;
+  return workouts.filter(workout => workout.date >= cutoff);
+}
