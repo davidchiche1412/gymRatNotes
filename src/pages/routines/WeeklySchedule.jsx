@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useWeeklySchedule } from '../../hooks/useWeeklySchedule';
 import { serializeRoutineForSharing } from '../../utils/shareRoutine';
 import { publishSchedule } from '../../db/queries/sharedRoutines';
-import { supabase } from '../../db/supabase';
 
 export default function WeeklySchedule({ routines }) {
   const { t } = useTranslation();
@@ -11,12 +10,6 @@ export default function WeeklySchedule({ routines }) {
   const [feedback, setFeedback] = useState(null);
 
   const handleShareSchedule = async () => {
-    if (!supabase) {
-      setFeedback(t('routines.shareUnavailable'));
-      setTimeout(() => setFeedback(null), 2000);
-      return;
-    }
-
     const sorted = [...schedule].sort((a, b) => a.dayOfWeek - b.dayOfWeek);
     const data = sorted.map(s => {
       const routine = routines.find(r => r.id === s.routineId);
@@ -28,8 +21,14 @@ export default function WeeklySchedule({ routines }) {
 
     try {
       const planId = await publishSchedule(data);
-      await navigator.clipboard.writeText(planId);
-      setFeedback(t('routines.scheduleCopied'));
+      if (planId) {
+        await navigator.clipboard.writeText(planId);
+        setFeedback(t('routines.scheduleCopied'));
+      } else {
+        // Sin Supabase, copiar JSON al portapapeles como fallback
+        await navigator.clipboard.writeText(JSON.stringify(data));
+        setFeedback(t('routines.scheduleCopied'));
+      }
     } catch {
       setFeedback(t('routines.shareError'));
     }

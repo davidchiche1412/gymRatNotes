@@ -6,7 +6,6 @@ import RoutineEditor from './RoutineEditor';
 import WeeklySchedule from './WeeklySchedule';
 import { useRoutines } from '../../hooks/useRoutines';
 import { fetchSharedRoutine, fetchSharedSchedule } from '../../db/queries/sharedRoutines';
-import { supabase } from '../../db/supabase';
 
 export default function RoutinesPage() {
   const { t } = useTranslation();
@@ -60,11 +59,6 @@ export default function RoutinesPage() {
   const handleImport = async () => {
     const trimmed = importId.trim();
     if (!trimmed) return;
-    if (!supabase) {
-      setImportFeedback(t('routines.shareUnavailable'));
-      setTimeout(() => setImportFeedback(null), 2500);
-      return;
-    }
     try {
       if (trimmed.startsWith('plan-')) {
         const scheduleData = await fetchSharedSchedule(trimmed);
