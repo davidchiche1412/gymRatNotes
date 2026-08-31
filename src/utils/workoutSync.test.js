@@ -3,13 +3,16 @@ import assert from 'node:assert/strict';
 import {
   createSetsFromRoutineExercise,
   createWorkoutFromRoutine,
+  createWorkoutExercisesFromRoutine,
   createPrefilledExercises,
   deriveWorkoutStatus,
   finalizeWorkout,
   finishAllWorkoutSets,
   getWorkoutStatus,
+  hasCompletedSets,
   hasManualChanges,
   shouldShowWorkoutInHistory,
+  syncPrefilledExercises,
   syncWorkoutExercises,
   syncWorkoutWithRoutine,
   toggleWorkoutSetCompleted,
@@ -127,6 +130,58 @@ test('toggleWorkoutSetCompleted toggles only the requested set', () => {
   assert.deepEqual(updated.exercises[0].sets.map(set => set.completed), [true, true]);
 });
 
+test('toggleWorkoutSetCompleted fills missing values from placeholders when completing', () => {
+  const updated = toggleWorkoutSetCompleted({
+    exercises: [{
+      exerciseId: 'bench',
+      sets: [
+        { weight: 90, reps: 8, duration: null, completed: true },
+        { weight: null, reps: null, duration: null, completed: false },
+      ],
+    }],
+    prefilledExercises: [{
+      exerciseId: 'bench',
+      sets: [
+        { weight: 80, reps: 8, duration: null },
+        { weight: 80, reps: 10, duration: null },
+      ],
+    }],
+  }, 0, 1);
+
+  assert.deepEqual(updated.exercises[0].sets[1], {
+    weight: 90,
+    reps: 8,
+    duration: null,
+    completed: true,
+    userEdited: true,
+  });
+});
+
+test('toggleWorkoutSetCompleted uses historical prefilled values for first set', () => {
+  const updated = toggleWorkoutSetCompleted({
+    exercises: [{
+      exerciseId: 'bench',
+      sets: [
+        { weight: null, reps: null, duration: null, completed: false },
+      ],
+    }],
+    prefilledExercises: [{
+      exerciseId: 'bench',
+      sets: [
+        { weight: 80, reps: 10, duration: null },
+      ],
+    }],
+  }, 0, 0);
+
+  assert.deepEqual(updated.exercises[0].sets[0], {
+    weight: 80,
+    reps: 10,
+    duration: null,
+    completed: true,
+    userEdited: true,
+  });
+});
+
 test('hasManualChanges detects typed values when there is no prefill baseline', () => {
   assert.equal(hasManualChanges({
     exercises: [{ sets: [{ weight: 80, reps: null, duration: null, completed: false }] }],
@@ -201,4 +256,80 @@ test('applyUserChangeStatus moves finished workouts back to in_progress', () => 
 
   assert.equal(updated.status, WORKOUT_STATUS.IN_PROGRESS);
   assert.equal(updated.finishedAt, null);
+});
+
+test('hasCompletedSets returns true when any set is completed', () => {
+  assert.equal(hasCompletedSets({
+    exercises: [{ sets: [{ completed: false }, { completed: true }] }],
+  }), true);
+});
+
+test('hasCompletedSets returns false when no sets are completed', () => {
+  assert.equal(hasCompletedSets({
+    exercises: [{ sets: [{ completed: false }] }],
+  }), false);
+  assert.equal(hasCompletedSets({
+    exercises: [],
+  }), false);
+});
+
+test('getWorkoutStatus uses explicit status when present', () => {
+  assert.equal(getWorkoutStatus({ status: 'finished' }), 'finished');
+  assert.equal(getWorkoutStatus({ status: 'in_progress' }), 'in_progress');
+});
+
+test('getWorkoutStatus falls back to finishedAt when no status', () => {
+  assert.equal(getWorkoutStatus({
+    status: undefined,
+    finishedAt: 123,
+    exercises: [{ sets: [{ completed: false, weight: null, reps: null, duration: null }] }],
+  }), WORKOUT_STATUS.FINISHED);
+});
+
+test('getWorkoutStatus derives from exercises when no status or finishedAt', () => {
+  assert.equal(getWorkoutStatus({
+    status: undefined,
+    finishedAt: null,
+    exercises: [{ sets: [{ completed: false, weight: null, reps: null, duration: null }] }],
+  }), WORKOUT_STATUS.NOT_STARTED);
+});
+
+test('createWorkoutExercisesFromRoutine maps exercises with previous data', () => {
+  const result = createWorkoutExercisesFromRoutine(
+    [
+      { exerciseId: 'bench', targetSets: 2, targetWeight: 80, targetReps: 8 },
+      { exerciseId: 'row', targetSets: 1, targetWeight: 50, targetReps: 10 },
+    ],
+    { bench: { sets: [{ weight: 85, reps: 6, duration: null, completed: true }] } }
+  );
+
+  assert.equal(result.length, 2);
+  assert.equal(result[0].exerciseId, 'bench');
+  assert.equal(result[0].sets[0].weight, 85); // from previous data
+  assert.equal(result[0].sets.length, 2);
+  assert.equal(result[1].exerciseId, 'row');
+  assert.equal(result[1].sets[0].weight, 50); // from routine target
+  assert.equal(result[1].notes, null);
+});
+
+test('createPrefilledExercises clones set data without completed flag', () => {
+  const prefilled = createPrefilledExercises([
+    { exerciseId: 'bench', sets: [{ weight: 80, reps: 8, duration: null, completed: true }] },
+  ]);
+
+  assert.equal(prefilled[0].exerciseId, 'bench');
+  assert.deepEqual(prefilled[0].sets[0], { weight: 80, reps: 8, duration: null });
+  assert.equal(prefilled[0].sets[0].completed, undefined);
+});
+
+test('syncPrefilledExercises syncs and clones prefilled baseline', () => {
+  const result = syncPrefilledExercises(
+    [{ exerciseId: 'bench', targetSets: 1 }],
+    [{ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, duration: null }] }],
+    {}
+  );
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].exerciseId, 'bench');
+  assert.deepEqual(result[0].sets[0], { weight: 80, reps: 8, duration: null });
 });

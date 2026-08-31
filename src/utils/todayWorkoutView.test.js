@@ -6,6 +6,7 @@ import {
   getWorkoutSetInputValue,
   getWorkoutSetPlaceholder,
   getWorkoutSetSuggestions,
+  resolveWorkoutSetFallbackValue,
 } from './todayWorkoutView.js';
 
 test('buildTodayWorkout joins routine, workout and exercise info for the UI', () => {
@@ -127,6 +128,10 @@ test('getWorkoutSetPlaceholder: propaga peso de serie userEdited', () => {
     { weight: null, reps: null, completed: false },
   ];
   assert.equal(getWorkoutSetPlaceholder(prefilledSets, sets, 1, 'weight'), 75);
+});
+
+test('resolveWorkoutSetFallbackValue: devuelve null si no hay fallback', () => {
+  assert.equal(resolveWorkoutSetFallbackValue([], [], 0, 'weight'), null);
 });
 
 // ── getWorkoutSetSuggestions ──────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { addMeasurement, deleteMeasurementById, getMeasurementsNewestFirst } from '../db/queries/measurements';
+import { addMeasurement, deleteMeasurementById, getMeasurementsNewestFirst, updateMeasurement } from '../db/queries/measurements';
 import { getSettings, saveSettings } from '../db/queries/settings';
 import {
   DEFAULT_MEASUREMENT_FIELDS,
@@ -74,8 +74,22 @@ export function useMeasurements() {
   const saveMeasurement = async (measurement) => {
     if (!hasMeasurementData(fields, measurement)) return;
 
-    const entry = buildMeasurementEntry(fields, measurement, uuidv4(), Date.now());
-    await addMeasurement(entry);
+    const entry = buildMeasurementEntry(
+      fields,
+      measurement,
+      measurement.id ?? uuidv4(),
+      measurement.date ?? Date.now()
+    );
+
+    if (measurement.id) {
+      await updateMeasurement({
+        ...entry,
+        createdAt: measurement.createdAt,
+      });
+    } else {
+      await addMeasurement(entry);
+    }
+
     await refreshMeasurements();
   };
 

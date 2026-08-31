@@ -9,6 +9,11 @@ export function addMeasurement(measurement) {
   return db.bodyMeasurements.add({ ...measurement, dirty: 1, updatedAt: measurement.updatedAt ?? now, createdAt: measurement.createdAt ?? now });
 }
 
+export function updateMeasurement(measurement) {
+  const now = Date.now();
+  return db.bodyMeasurements.put({ ...measurement, dirty: 1, updatedAt: measurement.updatedAt ?? now, createdAt: measurement.createdAt ?? now });
+}
+
 export function deleteMeasurementById(id) {
   return db.bodyMeasurements.delete(id);
 }

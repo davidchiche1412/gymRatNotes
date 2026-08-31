@@ -1,3 +1,5 @@
+import { resolveWorkoutSetFallbackValue } from './todayWorkoutView.js';
+
 function buildFallbackSet(routineExercise) {
   return {
     weight: routineExercise.targetWeight ?? null,
@@ -181,7 +183,23 @@ export function updateWorkoutSetValue(workout, exIdx, setIdx, field, value) {
 export function toggleWorkoutSetCompleted(workout, exIdx, setIdx) {
   const exercises = [...workout.exercises];
   const sets = [...exercises[exIdx].sets];
-  sets[setIdx] = { ...sets[setIdx], completed: !sets[setIdx].completed };
+  const nextCompleted = !sets[setIdx].completed;
+  const prefilledSets = workout.prefilledExercises?.find(
+    ex => ex.exerciseId === exercises[exIdx].exerciseId
+  )?.sets || [];
+  const nextSet = { ...sets[setIdx], completed: nextCompleted };
+
+  if (nextCompleted) {
+    ['weight', 'reps', 'duration'].forEach(field => {
+      if (nextSet[field] != null) return;
+
+      const fallbackValue = resolveWorkoutSetFallbackValue(prefilledSets, sets, setIdx, field);
+      if (fallbackValue != null) nextSet[field] = fallbackValue;
+    });
+    nextSet.userEdited = true;
+  }
+
+  sets[setIdx] = nextSet;
   exercises[exIdx] = { ...exercises[exIdx], sets };
 
   return { ...workout, exercises };

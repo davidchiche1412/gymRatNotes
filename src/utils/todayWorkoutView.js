@@ -56,15 +56,18 @@ export function getWorkoutSetInputValue(workoutStatus, set, field) {
   return set[field] ?? '';
 }
 
-export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {
-  // Solo propaga valores de series que el usuario ha editado o completado
+export function resolveWorkoutSetFallbackValue(prefilledSets, sets, setIndex, field) {
   for (let i = setIndex - 1; i >= 0; i--) {
     const s = sets?.[i];
     if (!s || (!s.completed && !s.userEdited)) continue;
     const val = s[field];
     if (val != null && val !== '') return val;
   }
-  return prefilledSets?.[setIndex]?.[field] ?? '—';
+  return prefilledSets?.[setIndex]?.[field] ?? null;
+}
+
+export function getWorkoutSetPlaceholder(prefilledSets, sets, setIndex, field) {
+  return resolveWorkoutSetFallbackValue(prefilledSets, sets, setIndex, field) ?? '—';
 }
 
 export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field) {
@@ -84,7 +87,7 @@ export function getWorkoutSetSuggestions(prefilledSets, sets, setIndex, field) {
   }
 
   // Valor histórico prefilled para esta serie
-  const historical = prefilledSets?.[setIndex]?.[field];
+  const historical = resolveWorkoutSetFallbackValue(prefilledSets, [], setIndex, field);
   if (historical != null && historical !== '' && !seen.has(historical)) {
     seen.add(historical);
     suggestions.push(historical);

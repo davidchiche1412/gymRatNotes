@@ -11,6 +11,9 @@ export default function MeasurementsSection() {
   const [showFieldEditor, setShowFieldEditor] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState({});
+  const [editingMeasurementId, setEditingMeasurementId] = useState(null);
+  const [editingMeasurementDate, setEditingMeasurementDate] = useState(null);
+  const [editingMeasurementCreatedAt, setEditingMeasurementCreatedAt] = useState(null);
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldUnit, setNewFieldUnit] = useState('cm');
   const { modal, confirm } = useModal();
@@ -39,10 +42,36 @@ export default function MeasurementsSection() {
     return t(`profile.${field.label}`);
   };
 
-  const handleSave = async () => {
-    await saveMeasurement({ ...form});
+  const resetForm = () => {
     setForm({});
     setShowForm(false);
+    setEditingMeasurementId(null);
+    setEditingMeasurementDate(null);
+    setEditingMeasurementCreatedAt(null);
+  };
+
+  const handleEdit = (measurement) => {
+    const nextForm = {};
+
+    fields.forEach(field => {
+      nextForm[field.key] = measurement[field.key] == null ? '' : String(measurement[field.key]);
+    });
+
+    setForm(nextForm);
+    setEditingMeasurementId(measurement.id);
+    setEditingMeasurementDate(measurement.date);
+    setEditingMeasurementCreatedAt(measurement.createdAt ?? null);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    await saveMeasurement({
+      ...form,
+      id: editingMeasurementId,
+      date: editingMeasurementDate,
+      createdAt: editingMeasurementCreatedAt,
+    });
+    resetForm();
   };
 
   const handleDelete = async (id) => {
@@ -163,7 +192,7 @@ export default function MeasurementsSection() {
           ))}
           <div className="flex gap-2 pt-1">
             <button
-              onClick={() => { setShowForm(false); setForm({}); }}
+              onClick={resetForm}
               className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-text-secondary"
             >
               {t('common.cancel')}
@@ -232,12 +261,20 @@ export default function MeasurementsSection() {
                       );
                     })}
                   </div>
-                  <button
-                    onClick={() => handleDelete(m.id)}
-                    className="text-danger text-xs mt-2"
-                  >
-                    {t('profile.deleteMeasurement')}
-                  </button>
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      onClick={() => handleEdit(m)}
+                      className="text-primary text-xs"
+                    >
+                      {t('common.edit')}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(m.id)}
+                      className="text-danger text-xs"
+                    >
+                      {t('profile.deleteMeasurement')}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
