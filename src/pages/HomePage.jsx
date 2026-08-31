@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../components/Modal';
 import DayOff from '../components/DayOff';
@@ -26,6 +26,22 @@ export default function HomePage() {
   } = useTodayWorkout();
 
   const [focusedSet, setFocusedSet] = useState(null);
+  const blurTimerRef = useRef(null);
+
+  const handleInputFocus = useCallback((exIdx, si, field) => {
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
+    setFocusedSet({ exIdx, si, field });
+  }, []);
+
+  const handleInputBlur = useCallback(() => {
+    blurTimerRef.current = setTimeout(() => {
+      setFocusedSet(null);
+      blurTimerRef.current = null;
+    }, 200);
+  }, []);
 
   if (loading) { return <Loading />; }
 
@@ -126,8 +142,8 @@ export default function HomePage() {
                               placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'weight')}
                               value={getWorkoutSetInputValue(todayWorkout.status, set, 'weight')}
                               onChange={e => handleSetChange(exIdx, si, 'weight', e.target.value)}
-                              onFocus={() => setFocusedSet({ exIdx, si, field: 'weight' })}
-                              onBlur={() => setTimeout(() => setFocusedSet(null), 150)}
+                              onFocus={() => handleInputFocus(exIdx, si, 'weight')}
+                              onBlur={handleInputBlur}
                               className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
                                 set.completed
                                   ? 'bg-primary/10 border-primary/20 text-primary'
@@ -140,8 +156,8 @@ export default function HomePage() {
                               placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'reps')}
                               value={getWorkoutSetInputValue(todayWorkout.status, set, 'reps')}
                               onChange={e => handleSetChange(exIdx, si, 'reps', e.target.value)}
-                              onFocus={() => setFocusedSet({ exIdx, si, field: 'reps' })}
-                              onBlur={() => setTimeout(() => setFocusedSet(null), 150)}
+                              onFocus={() => handleInputFocus(exIdx, si, 'reps')}
+                              onBlur={handleInputBlur}
                               className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
                                 set.completed
                                   ? 'bg-primary/10 border-primary/20 text-primary'
@@ -157,8 +173,8 @@ export default function HomePage() {
                             placeholder={getWorkoutSetPlaceholder(exData.prefilledSets, exData.sets, si, 'duration')}
                             value={getWorkoutSetInputValue(todayWorkout.status, set, 'duration')}
                             onChange={e => handleSetChange(exIdx, si, 'duration', e.target.value)}
-                            onFocus={() => setFocusedSet({ exIdx, si, field: 'duration' })}
-                            onBlur={() => setTimeout(() => setFocusedSet(null), 150)}
+                            onFocus={() => handleInputFocus(exIdx, si, 'duration')}
+                            onBlur={handleInputBlur}
                             className={`flex-1 px-2 py-2 rounded-lg border text-sm text-center min-w-0 transition-colors ${
                               set.completed
                                 ? 'bg-primary/10 border-primary/20 text-primary'
