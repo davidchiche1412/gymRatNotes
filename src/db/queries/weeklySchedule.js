@@ -13,8 +13,10 @@ export function updateScheduleRoutine(id, routineId) {
 }
 
 export async function clearRoutineFromSchedule(routineId) {
-  const schedules = await db.weeklySchedule.where('routineId').equals(routineId).toArray();
-  for (const schedule of schedules) {
-    await updateScheduleRoutine(schedule.id, null);
-  }
+  await db.transaction('rw', db.weeklySchedule, async () => {
+    const schedules = await db.weeklySchedule.where('routineId').equals(routineId).toArray();
+    for (const schedule of schedules) {
+      await db.weeklySchedule.update(schedule.id, { routineId: null, dirty: 1, updatedAt: Date.now() });
+    }
+  });
 }

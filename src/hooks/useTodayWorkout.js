@@ -126,7 +126,7 @@ export function useTodayWorkout() {
     setWorkoutData(workout);
 
     const snapshot = structuredClone(workout);
-    writeQueue.current = writeQueue.current.then(() => saveWorkout(snapshot));
+    writeQueue.current = writeQueue.current.then(() => saveWorkout(snapshot)).catch(() => {});
     await writeQueue.current;
   }, []);
 

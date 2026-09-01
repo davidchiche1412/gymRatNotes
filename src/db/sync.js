@@ -84,6 +84,10 @@ const CONFIGS = [
   { local: 'userSettings',     remote: 'user_settings',     serialize: serializeUserSettings,    deserialize: deserializeUserSettings,    filter: null },
 ];
 
+// ─── Mutex para evitar sync concurrentes ─────────────────────────────────────
+
+let _syncing = false;
+
 // ─── Helpers de meta ──────────────────────────────────────────────────────────
 
 async function getLastSyncAt() {
@@ -141,15 +145,19 @@ async function pullTable(config, userId, since) {
 // ─── API pública ──────────────────────────────────────────────────────────────
 
 export async function sync(userId) {
-  if (!supabase || !userId) return;
+  if (!supabase || !userId || _syncing) return;
+  _syncing = true;
+  try {
+    const since = await getLastSyncAt();
+    const now = Date.now();
 
-  const since = await getLastSyncAt();
-  const now = Date.now();
+    await Promise.all(CONFIGS.map(c => pushTable(c, userId)));
+    await Promise.all(CONFIGS.map(c => pullTable(c, userId, since)));
 
-  await Promise.all(CONFIGS.map(c => pushTable(c, userId)));
-  await Promise.all(CONFIGS.map(c => pullTable(c, userId, since)));
-
-  await setLastSyncAt(now);
+    await setLastSyncAt(now);
+  } finally {
+    _syncing = false;
+  }
 }
 
 export async function initialPushAll(userId) {
