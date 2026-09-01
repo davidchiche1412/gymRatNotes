@@ -98,3 +98,34 @@ test('validateImportedSchedule filters invalid entries', () => {
   assert.equal(result[1].day, 1);
   assert.equal(result[1].routine, null);
 });
+
+test('encodeSchedule handles empty schedule', () => {
+  const encoded = encodeSchedule([]);
+  assert.ok(encoded.startsWith('plan-'));
+  assert.deepEqual(decodeSchedule(encoded), []);
+});
+
+test('validateImportedRoutine caps extreme values', () => {
+  const result = validateImportedRoutine({
+    name: 'Test',
+    exercises: [{ exerciseId: 'x', targetSets: -5, targetWeight: -100, targetReps: 0 }],
+    restTime: -10,
+  });
+  assert.equal(result.exercises[0].targetSets, 1); // min 1
+  assert.equal(result.restTime, 0); // min 0
+});
+
+test('validateImportedRoutine filters exercises without exerciseId string', () => {
+  const result = validateImportedRoutine({
+    name: 'Test',
+    exercises: [
+      { exerciseId: 123 },        // number, not string
+      { exerciseId: '' },          // empty string — still a string
+      { targetSets: 3 },           // no exerciseId
+      { exerciseId: 'valid', targetSets: 3 },
+    ],
+    restTime: 60,
+  });
+  // Solo pasan exerciseId que sean strings (incluido '' que es truthy para typeof)
+  assert.equal(result.exercises.length, 2); // '' y 'valid'
+});

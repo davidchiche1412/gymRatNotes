@@ -196,3 +196,46 @@ test('getWorkoutSetSuggestions: no duplica si peso anterior == histórico', () =
   assert.equal(s.length, 1);
   assert.equal(s[0], 80);
 });
+
+// ── Edge cases y regresiones ──────────────────────────────────────────────────
+
+test('buildTodayWorkout returns null if routine is null', () => {
+  assert.equal(buildTodayWorkout({ routine: null, workout: {}, dayOfWeek: 0 }), null);
+});
+
+test('buildTodayWorkout returns null if workout is null', () => {
+  assert.equal(buildTodayWorkout({ routine: { exercises: [] }, workout: null, dayOfWeek: 0 }), null);
+});
+
+test('getTodayWorkoutProgress handles null/empty workout', () => {
+  assert.deepEqual(getTodayWorkoutProgress(null), { totalSets: 0, completedSets: 0, progress: 0 });
+  assert.deepEqual(getTodayWorkoutProgress({ exercises: [] }), { totalSets: 0, completedSets: 0, progress: 0 });
+});
+
+test('getWorkoutSetInputValue handles null field value', () => {
+  const set = { weight: null, reps: null, completed: false };
+  assert.equal(getWorkoutSetInputValue('in_progress', set, 'weight'), '');
+});
+
+test('resolveWorkoutSetFallbackValue skips sets without userEdited or completed', () => {
+  const sets = [
+    { weight: 50, reps: 10, completed: false },
+    { weight: 60, reps: 8, completed: false },
+    { weight: null, reps: null, completed: false },
+  ];
+  // Ninguna serie anterior está completed ni userEdited → fallback a prefilled
+  const prefilledSets = [null, null, { weight: 70, reps: 10 }];
+  assert.equal(resolveWorkoutSetFallbackValue(prefilledSets, sets, 2, 'weight'), 70);
+});
+
+test('getWorkoutSetPlaceholder returns dash when no fallback exists', () => {
+  assert.equal(getWorkoutSetPlaceholder([], [], 0, 'weight'), '—');
+});
+
+test('getWorkoutSetSuggestions handles empty prefilledSets', () => {
+  const sets = [{ weight: 80, reps: 8, completed: true }];
+  const s = getWorkoutSetSuggestions([], sets, 1, 'weight');
+  // Serie anterior completada con 80, sin prefilled → solo 80
+  assert.equal(s.length, 1);
+  assert.equal(s[0], 80);
+});

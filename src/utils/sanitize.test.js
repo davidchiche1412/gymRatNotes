@@ -36,3 +36,17 @@ test('sanitizeNumber returns finite numbers or null', () => {
   assert.equal(sanitizeNumber(NaN), null);
   assert.equal(sanitizeNumber('not a number'), null);
 });
+
+test('sanitizeString with maxLength 0 returns empty', () => {
+  assert.equal(sanitizeString('hello', 0), '');
+});
+
+test('sanitizeString preserves emojis and unicode', () => {
+  assert.equal(sanitizeString('💪 Día de pierna 🦵'), '💪 Día de pierna 🦵');
+});
+
+test('sanitizeNumber handles edge numeric values', () => {
+  assert.equal(sanitizeNumber(0), 0);
+  assert.equal(sanitizeNumber(-10), -10);
+  assert.equal(sanitizeNumber('0'), 0);
+});

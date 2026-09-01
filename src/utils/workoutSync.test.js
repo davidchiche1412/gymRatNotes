@@ -333,3 +333,92 @@ test('syncPrefilledExercises syncs and clones prefilled baseline', () => {
   assert.equal(result[0].exerciseId, 'bench');
   assert.deepEqual(result[0].sets[0], { weight: 80, reps: 8, duration: null });
 });
+
+// ── Edge cases que detectan regresiones reales ──────────────────────────────
+
+test('createSetsFromRoutineExercise pads sets from previous data if fewer than target', () => {
+  const sets = createSetsFromRoutineExercise(
+    { exerciseId: 'bench', targetSets: 4 },
+    { sets: [{ weight: 80, reps: 8, duration: null, completed: true }] }
+  );
+  // Debería crear 4 sets: 1 del historial + 3 copias del último
+  assert.equal(sets.length, 4);
+  assert.equal(sets[0].weight, 80);
+  assert.equal(sets[3].weight, 80);
+  assert.equal(sets[0].completed, false); // clonado como pending
+});
+
+test('createSetsFromRoutineExercise defaults to 3 sets when targetSets is 0 or undefined', () => {
+  const sets1 = createSetsFromRoutineExercise({ exerciseId: 'x', targetSets: 0 });
+  const sets2 = createSetsFromRoutineExercise({ exerciseId: 'x' });
+  assert.equal(sets1.length, 3);
+  assert.equal(sets2.length, 3);
+});
+
+test('updateWorkoutSetValue converts empty string to null', () => {
+  const updated = updateWorkoutSetValue({
+    exercises: [{ sets: [{ weight: 80, reps: 8, duration: null, completed: false }] }],
+  }, 0, 0, 'weight', '');
+  assert.equal(updated.exercises[0].sets[0].weight, null);
+  assert.equal(updated.exercises[0].sets[0].userEdited, true);
+});
+
+test('updateWorkoutSetValue converts string numbers correctly', () => {
+  const updated = updateWorkoutSetValue({
+    exercises: [{ sets: [{ weight: null, reps: null, duration: null, completed: false }] }],
+  }, 0, 0, 'weight', '82.5');
+  assert.equal(updated.exercises[0].sets[0].weight, 82.5);
+  assert.equal(typeof updated.exercises[0].sets[0].weight, 'number');
+});
+
+test('toggleWorkoutSetCompleted does not overwrite existing values with fallback', () => {
+  // Si el set ya tiene peso, no debe sobreescribirse con el prefilled
+  const updated = toggleWorkoutSetCompleted({
+    exercises: [{
+      exerciseId: 'bench',
+      sets: [{ weight: 100, reps: 12, duration: null, completed: false }],
+    }],
+    prefilledExercises: [{
+      exerciseId: 'bench',
+      sets: [{ weight: 80, reps: 8, duration: null }],
+    }],
+  }, 0, 0);
+  assert.equal(updated.exercises[0].sets[0].weight, 100); // mantiene el original
+  assert.equal(updated.exercises[0].sets[0].reps, 12);
+  assert.equal(updated.exercises[0].sets[0].completed, true);
+});
+
+test('deriveWorkoutStatus returns FINISHED even without completed sets', () => {
+  // Un workout puede estar FINISHED sin sets completados (ej: finalizado desde historial)
+  assert.equal(deriveWorkoutStatus({
+    status: WORKOUT_STATUS.FINISHED,
+    exercises: [{ sets: [{ completed: false }] }],
+  }), WORKOUT_STATUS.FINISHED);
+});
+
+test('hasManualChanges detects changes correctly with prefilled baseline', () => {
+  // No hay cambios si los datos coinciden con el prefilled
+  assert.equal(hasManualChanges({
+    exercises: [{ exerciseId: 'a', sets: [{ weight: 80, reps: 8, duration: null }] }],
+    prefilledExercises: [{ exerciseId: 'a', sets: [{ weight: 80, reps: 8, duration: null }] }],
+  }), false);
+
+  // Cambiar un valor sí es un cambio
+  assert.equal(hasManualChanges({
+    exercises: [{ exerciseId: 'a', sets: [{ weight: 85, reps: 8, duration: null }] }],
+    prefilledExercises: [{ exerciseId: 'a', sets: [{ weight: 80, reps: 8, duration: null }] }],
+  }), true);
+});
+
+test('syncWorkoutExercises preserves completed sets and notes', () => {
+  const synced = syncWorkoutExercises(
+    [{ exerciseId: 'bench', targetSets: 2 }],
+    [{ exerciseId: 'bench', notes: 'dolor hombro', sets: [
+      { weight: 80, reps: 8, completed: true },
+      { weight: 85, reps: 6, completed: true },
+    ] }],
+  );
+  assert.equal(synced[0].notes, 'dolor hombro');
+  assert.equal(synced[0].sets[0].completed, true);
+  assert.equal(synced[0].sets[1].completed, true);
+});
