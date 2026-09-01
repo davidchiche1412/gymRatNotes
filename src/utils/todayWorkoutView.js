@@ -1,3 +1,5 @@
+import { WORKOUT_STATUS } from './workoutSync.js';
+
 export function buildTodayWorkout({ routine, workout, exerciseInfoMap = {}, dayOfWeek }) {
   if (!routine || !workout) return null;
 
@@ -52,7 +54,7 @@ export function getTodayWorkoutProgress(todayWorkout) {
 export function getWorkoutSetInputValue(workoutStatus, set, field) {
   // En not_started: vacío hasta que el usuario toque el set (muestra placeholder)
   // En cualquier otro estado: muestra el valor del set (histórico o tecleado)
-  if (workoutStatus === 'not_started' && !set.completed && !set.userEdited) return '';
+  if (workoutStatus === WORKOUT_STATUS.NOT_STARTED && !set.completed && !set.userEdited) return '';
   return set[field] ?? '';
 }
 

@@ -4,7 +4,7 @@ import Modal from '../components/Modal';
 import DayOff from '../components/DayOff';
 import Loading from '../components/Loading';
 import { useTodayWorkout } from '../hooks/useTodayWorkout';
-import { getExerciseName } from '../utils/exerciseName';
+import { getExerciseName, isWeightExercise } from '../utils/exerciseName';
 import { getWorkoutSetSuggestions } from '../utils/todayWorkoutView';
 import WorkoutSetInput from '../components/WorkoutSetInput';
 
@@ -98,7 +98,7 @@ export default function HomePage() {
                 </div>
                 <p className="text-[11px] text-text-secondary">
                   {exData.muscleGroup && t(`exercises.muscleGroups.${exData.muscleGroup}`)}
-                  {(exData.type === 'weight' || exData.type === 'bodyweight') && (
+                  {isWeightExercise(exData.type) && (
                     <> · {t(`routines.weightModesShort.${exData.targetWeightMode || 'total'}`)}</>
                   )}
                 </p>
@@ -107,7 +107,7 @@ export default function HomePage() {
               {/* Header de columnas */}
               <div className="flex items-center gap-2 px-4 py-1 text-[10px] text-text-secondary uppercase tracking-wider">
                 <span className="w-6 text-center">#</span>
-                {(exData.type === 'weight' || exData.type === 'bodyweight') && (
+                {isWeightExercise(exData.type) && (
                   <>
                     <span className="flex-1 text-center">{t('workout.weight')}</span>
                     <span className="flex-1 text-center">{t('workout.reps')}</span>
@@ -135,7 +135,7 @@ export default function HomePage() {
                           set.completed ? 'text-primary' : 'text-text-secondary'
                         }`}>{si + 1}</span>
 
-                        {(exData.type === 'weight' || exData.type === 'bodyweight') && (
+                        {isWeightExercise(exData.type) && (
                           <>
                             <WorkoutSetInput
                               field="weight" inputMode="decimal" set={set} setIndex={si}

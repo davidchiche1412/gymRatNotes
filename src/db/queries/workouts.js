@@ -1,4 +1,5 @@
 import { db } from '../database';
+import { WORKOUT_STATUS } from '../../utils/workoutSync';
 
 export function getWorkouts() {
   return db.workouts.toArray();
@@ -64,7 +65,7 @@ export async function finalizePastWorkouts(beforeTimestamp) {
 
     const now = Date.now();
     await db.workouts.bulkPut(
-      pending.map(w => withDirty({ ...w, status: 'finished', finishedAt: w.date, updatedAt: now }))
+      pending.map(w => withDirty({ ...w, status: WORKOUT_STATUS.FINISHED, finishedAt: w.date, updatedAt: now }))
     );
     return pending.length;
   });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { calculateOneRepMax, findBestSetForExercise } from '../utils/oneRepMax';
+import { isWeightExercise } from '../utils/exerciseName';
 
 export default function DraggableExerciseList({ exercises, onReorder, onUpdate, onEdit, onRemove, workouts, expanded1RM, onToggle1RM, t }) {
   const [dragIdx, setDragIdx] = useState(null);
@@ -131,7 +132,7 @@ export default function DraggableExerciseList({ exercises, onReorder, onUpdate, 
                   min={1}
                 />
               </div>
-              {(ex.type === 'weight' || ex.type === 'bodyweight') && (
+              {isWeightExercise(ex.type) && (
                 <>
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] text-text-secondary mb-0.5">{t('workout.weight')}</span>
