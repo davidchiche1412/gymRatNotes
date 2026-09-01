@@ -30,8 +30,8 @@ function serializeWorkout(row, userId) {
 }
 
 function serializeBodyMeasurement(row, userId) {
-  const { id, updatedAt, createdAt, ...rest } = row;
-  return { id, user_id: userId, date: row.date, data: rest, updated_at: updatedAt ?? Date.now(), created_at: createdAt ?? Date.now() };
+  const { id, updatedAt, createdAt, dirty, date, ...measurementData } = row;
+  return { id, user_id: userId, date, data: measurementData, updated_at: updatedAt ?? Date.now(), created_at: createdAt ?? Date.now() };
 }
 
 function serializeUserSettings(row, userId) {
@@ -57,7 +57,18 @@ function deserializeWorkout(row) {
 }
 
 function deserializeBodyMeasurement(row) {
-  return { id: row.id, date: row.date, ...row.data, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+  // Allowlist: solo campos numéricos de medidas, sin keys arbitrarias
+  const safeData = {};
+  if (row.data && typeof row.data === 'object') {
+    for (const [key, val] of Object.entries(row.data)) {
+      if (typeof key === 'string' && key !== '__proto__' && key !== 'constructor'
+          && key !== 'id' && key !== 'date' && key !== 'dirty'
+          && key !== 'updatedAt' && key !== 'createdAt') {
+        safeData[key] = typeof val === 'number' ? val : null;
+      }
+    }
+  }
+  return { id: row.id, date: row.date, ...safeData, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
 }
 
 function deserializeUserSettings(row) {

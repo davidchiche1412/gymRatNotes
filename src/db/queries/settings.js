@@ -33,8 +33,28 @@ export async function exportAppData() {
   );
 }
 
+function sanitizeRow(row) {
+  if (!row || typeof row !== 'object' || !row.id) return null;
+  const clean = {};
+  for (const [key, val] of Object.entries(row)) {
+    if (key === '__proto__' || key === 'constructor') continue;
+    if (typeof val === 'string') {
+      clean[key] = val.replace(/<[^>]*>/g, '').slice(0, 500);
+    } else {
+      clean[key] = val;
+    }
+  }
+  return clean;
+}
+
 export async function importAppData(data, mode) {
   const backup = validateAppBackup(data);
+
+  // Sanitizar cada row: strip HTML tags, validar id presente
+  const sanitized = {};
+  for (const table of Object.keys(backup)) {
+    sanitized[table] = backup[table].map(sanitizeRow).filter(Boolean);
+  }
 
   await db.transaction(
     'rw',
@@ -54,12 +74,12 @@ export async function importAppData(data, mode) {
         await db.userSettings.clear();
       }
 
-      await db.exercises.bulkPut(backup.exercises);
-      await db.routines.bulkPut(backup.routines);
-      await db.weeklySchedule.bulkPut(backup.weeklySchedule);
-      await db.workouts.bulkPut(backup.workouts);
-      await db.bodyMeasurements.bulkPut(backup.bodyMeasurements);
-      await db.userSettings.bulkPut(backup.userSettings);
+      await db.exercises.bulkPut(sanitized.exercises);
+      await db.routines.bulkPut(sanitized.routines);
+      await db.weeklySchedule.bulkPut(sanitized.weeklySchedule);
+      await db.workouts.bulkPut(sanitized.workouts);
+      await db.bodyMeasurements.bulkPut(sanitized.bodyMeasurements);
+      await db.userSettings.bulkPut(sanitized.userSettings);
     }
   );
 }

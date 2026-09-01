@@ -7,16 +7,24 @@ test('sanitizeString trims and caps length', () => {
   assert.equal(sanitizeString('a'.repeat(300), 100), 'a'.repeat(100));
 });
 
-test('sanitizeString strips script tags and event handlers', () => {
+test('sanitizeString strips all HTML tags', () => {
   assert.equal(sanitizeString('<script>alert(1)</script>'), 'alert(1)');
-  assert.equal(sanitizeString('hello<script src="x.js">'), 'hello');
-  assert.equal(sanitizeString('img onerror=alert(1)'), 'img alert(1)');
-  assert.equal(sanitizeString('javascript:void(0)'), 'void(0)');
+  assert.equal(sanitizeString('hello<script src="x.js">world'), 'helloworld');
+  assert.equal(sanitizeString('<img onerror=alert(1)>'), '');
+  assert.equal(sanitizeString('<svg onload=alert(1)>'), '');
+  assert.equal(sanitizeString('<iframe src="evil.com">'), '');
+  assert.equal(sanitizeString('<b>bold</b>'), 'bold');
+  assert.equal(sanitizeString('normal text'), 'normal text');
+});
+
+test('sanitizeString handles nested tags', () => {
+  assert.equal(sanitizeString('<scr<script>ipt>alert(1)</script>'), 'ipt>alert(1)');
 });
 
 test('sanitizeString passes through non-strings unchanged', () => {
   assert.equal(sanitizeString(null), null);
   assert.equal(sanitizeString(42), 42);
+  assert.equal(sanitizeString(undefined), undefined);
 });
 
 test('sanitizeNumber returns finite numbers or null', () => {

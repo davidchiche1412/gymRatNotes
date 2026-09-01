@@ -218,7 +218,8 @@
     "signOut": "Cerrar sesión",
     "continueGuest": "Continuar sin cuenta",
     "checkEmail": "Revisa tu email para confirmar el registro.",
-    "syncBanner": "Sincronizado ☁️"
+    "syncBanner": "Sincronizado ☁️",
+    "invalidCredentials": "Email o contraseña incorrectos"
   },
   "common": {
     "save": "Guardar",

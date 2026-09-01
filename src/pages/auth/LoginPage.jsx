@@ -23,7 +23,8 @@ export default function LoginPage({ onClose }) {
 
     setLoading(false);
     if (err) {
-      setError(err.message);
+      // No exponer mensajes internos de Supabase (user enumeration)
+      setError(mode === 'login' ? t('auth.invalidCredentials') : err.message);
     } else if (mode === 'register') {
       setSuccessMsg(t('auth.checkEmail'));
     }

@@ -131,9 +131,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'shared_routines' AND policyname = 'Authenticated users can insert shared routines') THEN
     CREATE POLICY "Authenticated users can insert shared routines" ON public.shared_routines FOR INSERT WITH CHECK (auth.role() = 'authenticated');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'shared_routines' AND policyname = 'Authenticated users can update shared routines') THEN
-    CREATE POLICY "Authenticated users can update shared routines" ON public.shared_routines FOR UPDATE USING (auth.role() = 'authenticated');
-  END IF;
+  -- UPDATE deshabilitado: las rutinas compartidas son inmutables
 END $$;
 
 
@@ -155,7 +153,5 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'shared_schedules' AND policyname = 'Authenticated users can insert shared schedules') THEN
     CREATE POLICY "Authenticated users can insert shared schedules" ON public.shared_schedules FOR INSERT WITH CHECK (auth.role() = 'authenticated');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'shared_schedules' AND policyname = 'Authenticated users can update shared schedules') THEN
-    CREATE POLICY "Authenticated users can update shared schedules" ON public.shared_schedules FOR UPDATE USING (auth.role() = 'authenticated');
-  END IF;
+  -- UPDATE deshabilitado: las programaciones compartidas son inmutables
 END $$;

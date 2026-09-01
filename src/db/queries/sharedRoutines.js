@@ -2,12 +2,13 @@ import { supabase } from '../supabase';
 
 export async function publishRoutine(routineId, routineData) {
   if (!supabase) return null;
-  const { error } = await supabase.from('shared_routines').upsert({
+  const { error } = await supabase.from('shared_routines').insert({
     id: routineId,
     data: routineData,
     updated_at: Date.now(),
-  }, { onConflict: 'id' });
-  if (error) throw error;
+  });
+  // Ignorar conflicto si ya fue compartida antes
+  if (error && !error.message?.includes('duplicate')) throw error;
   return routineId;
 }
 
@@ -27,12 +28,12 @@ function generatePlanId() {
 export async function publishSchedule(scheduleData) {
   if (!supabase) return null;
   const id = generatePlanId();
-  const { error } = await supabase.from('shared_schedules').upsert({
+  const { error } = await supabase.from('shared_schedules').insert({
     id,
     data: scheduleData,
     updated_at: Date.now(),
-  }, { onConflict: 'id' });
-  if (error) throw error;
+  });
+  if (error && !error.message?.includes('duplicate')) throw error;
   return id;
 }
 
