@@ -143,20 +143,24 @@ export function useTodayWorkout() {
     let cancelled = false;
 
     const load = async () => {
-      const data = await loadTodayWorkoutData();
-      if (cancelled) return;
+      try {
+        const data = await loadTodayWorkoutData();
+        if (cancelled) return;
 
-      if (!data) {
-        setLoading(false);
-        return;
+        if (!data) {
+          setLoading(false);
+          return;
+        }
+
+        setRoutine(data.routine);
+        setExerciseInfoMap(data.exerciseInfoMap);
+        setPreviousDataMap(data.previousDataMap);
+        workoutRef.current = data.workout;
+        setWorkoutData(data.workout);
+      } catch {
+        // IndexedDB puede fallar (cuota, corrupción). Degradar a día de descanso.
       }
-
-      setRoutine(data.routine);
-      setExerciseInfoMap(data.exerciseInfoMap);
-      setPreviousDataMap(data.previousDataMap);
-      workoutRef.current = data.workout;
-      setWorkoutData(data.workout);
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
     load();

@@ -87,6 +87,8 @@ const CONFIGS = [
 // ─── Mutex para evitar sync concurrentes ─────────────────────────────────────
 
 let _syncing = false;
+let _syncStartedAt = 0;
+const SYNC_TIMEOUT_MS = 30_000; // 30s max por sync
 
 // ─── Helpers de meta ──────────────────────────────────────────────────────────
 
@@ -145,14 +147,17 @@ async function pullTable(config, userId, since) {
 // ─── API pública ──────────────────────────────────────────────────────────────
 
 export async function sync(userId) {
-  if (!supabase || !userId || _syncing) return;
+  if (!supabase || !userId) return;
+  // Recuperar mutex si lleva más de 30s bloqueado (Supabase colgó)
+  if (_syncing && Date.now() - _syncStartedAt < SYNC_TIMEOUT_MS) return;
   _syncing = true;
+  _syncStartedAt = Date.now();
   try {
     const since = await getLastSyncAt();
     const now = Date.now();
 
-    await Promise.all(CONFIGS.map(c => pushTable(c, userId)));
-    await Promise.all(CONFIGS.map(c => pullTable(c, userId, since)));
+    await Promise.allSettled(CONFIGS.map(c => pushTable(c, userId)));
+    await Promise.allSettled(CONFIGS.map(c => pullTable(c, userId, since)));
 
     await setLastSyncAt(now);
   } finally {
@@ -164,14 +169,18 @@ export async function initialPushAll(userId) {
   if (!supabase || !userId) return;
 
   for (const config of CONFIGS) {
-    let rows = await db[config.local].toArray();
-    if (config.filter) rows = rows.filter(config.filter);
-    if (rows.length === 0) continue;
+    try {
+      let rows = await db[config.local].toArray();
+      if (config.filter) rows = rows.filter(config.filter);
+      if (rows.length === 0) continue;
 
-    const remote = rows.map(r => config.serialize(r, userId));
-    const { error } = await supabase.from(config.remote).upsert(remote, { onConflict: 'id' });
-    if (error) throw error;
-    await db[config.local].bulkPut(rows.map(r => ({ ...r, dirty: 0 })));
+      const remote = rows.map(r => config.serialize(r, userId));
+      const { error } = await supabase.from(config.remote).upsert(remote, { onConflict: 'id' });
+      if (error) throw error;
+      await db[config.local].bulkPut(rows.map(r => ({ ...r, dirty: 0 })));
+    } catch {
+      // Tabla falla → mantiene dirty:1, se reintentará en próximo sync
+    }
   }
 
   await setLastSyncAt(Date.now());
@@ -181,15 +190,19 @@ export async function initialPullAll(userId) {
   if (!supabase || !userId) return;
 
   for (const config of CONFIGS) {
-    const { data, error } = await supabase
-      .from(config.remote)
-      .select('*')
-      .eq('user_id', userId);
+    try {
+      const { data, error } = await supabase
+        .from(config.remote)
+        .select('*')
+        .eq('user_id', userId);
 
-    if (error) throw error;
-    if (!data || data.length === 0) continue;
+      if (error) throw error;
+      if (!data || data.length === 0) continue;
 
-    await db[config.local].bulkPut(data.map(config.deserialize));
+      await db[config.local].bulkPut(data.map(config.deserialize));
+    } catch {
+      // Tabla falla → continuamos con las demás, próximo sync completará
+    }
   }
 
   await setLastSyncAt(Date.now());
