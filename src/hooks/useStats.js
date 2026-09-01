@@ -27,12 +27,13 @@ export function useStats(language) {
     let cancelled = false;
 
     async function load() {
-      const [exs, workouts] = await Promise.all([getExercises(), getFinishedWorkouts()]);
+      const [exs, loadedWorkouts] = await Promise.all([getExercises(), getFinishedWorkouts()]);
       if (cancelled) return;
 
-      const exerciseIdsWithWeightData = getExerciseIdsWithWeightData(workouts);
+      setWorkouts(loadedWorkouts);
+      const exerciseIdsWithWeightData = getExerciseIdsWithWeightData(loadedWorkouts);
       const nextExercisesWithProgress = exs.filter(exercise => exerciseIdsWithWeightData.has(exercise.id));
-      const nextPrs = buildPersonalRecords(workouts, exs);
+      const nextPrs = buildPersonalRecords(loadedWorkouts, exs);
 
       setExercises(exs);
       setExercisesWithProgress(nextExercisesWithProgress);
@@ -51,29 +52,21 @@ export function useStats(language) {
     };
   }, [language]);
 
+  // Cachear workouts del primer load para no hacer doble fetch
+  const [workouts, setWorkouts] = useState([]);
+
   useEffect(() => {
-    if (!selectedExercise) {
+    if (!selectedExercise || workouts.length === 0) {
       setChartData([]);
       return;
     }
-    let cancelled = false;
 
-    async function load() {
-      const workouts = await getFinishedWorkouts();
-      if (cancelled) return;
-
-      const filtered = filterWorkoutsByTimeRange(workouts, timeRange);
-      const data = selectedMetric === 'volume'
-        ? buildVolumeData(filtered, selectedExercise, language)
-        : buildMaxWeightData(filtered, selectedExercise, language);
-      setChartData(data);
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [language, selectedExercise, selectedMetric, timeRange]);
+    const filtered = filterWorkoutsByTimeRange(workouts, timeRange);
+    const data = selectedMetric === 'volume'
+      ? buildVolumeData(filtered, selectedExercise, language)
+      : buildMaxWeightData(filtered, selectedExercise, language);
+    setChartData(data);
+  }, [language, selectedExercise, selectedMetric, timeRange, workouts]);
 
   useEffect(() => {
     setFilteredPrs(filterRecordsByMuscleGroup(prs, selectedMuscleGroup));

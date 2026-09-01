@@ -9,7 +9,8 @@ import { getScheduleForDay } from '../db/queries/weeklySchedule';
 import {
   addWorkout,
   deleteWorkout,
-  getFinishedWorkoutsNewestFirst,
+
+  getFinishedWorkoutsByRoutine,
   getWorkoutForRoutineSince,
   saveWorkout,
   finalizePastWorkouts,
@@ -38,16 +39,20 @@ async function getRoutineForToday() {
 }
 
 async function getPreviousDataMap(routine) {
-  const prevWorkouts = await getFinishedWorkoutsNewestFirst();
-  const prevMap = {};
+  // Solo workouts de esta rutina, ya ordenados por fecha desc
+  const prevWorkouts = await getFinishedWorkoutsByRoutine(routine.id);
+  if (prevWorkouts.length === 0) return {};
 
-  for (const routineExercise of routine.exercises) {
-    for (const workout of prevWorkouts) {
-      if (workout.routineId !== routine.id) continue;
-      const previousExercise = workout.exercises.find(ex => ex.exerciseId === routineExercise.exerciseId);
-      if (previousExercise) {
-        prevMap[routineExercise.exerciseId] = previousExercise;
-        break;
+  const prevMap = {};
+  const needed = new Set(routine.exercises.map(ex => ex.exerciseId));
+
+  // Un solo paso por los workouts: O(workouts × exercises del workout)
+  for (const workout of prevWorkouts) {
+    if (needed.size === 0) break;
+    for (const ex of workout.exercises) {
+      if (needed.has(ex.exerciseId)) {
+        prevMap[ex.exerciseId] = ex;
+        needed.delete(ex.exerciseId);
       }
     }
   }

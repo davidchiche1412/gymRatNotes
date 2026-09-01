@@ -121,14 +121,20 @@ async function pullTable(config, userId, since) {
   if (error) throw error;
   if (!data || data.length === 0) return;
 
-  for (const remote of data) {
-    const local = await db[config.local].get(remote.id);
-    const localUpdatedAt = local?.updatedAt ?? 0;
-    const remoteUpdatedAt = remote.updated_at;
+  // Batch: cargar todos los locales de una vez en vez de N queries individuales
+  const remoteIds = data.map(r => r.id);
+  const locals = await db[config.local].where('id').anyOf(remoteIds).toArray();
+  const localMap = Object.fromEntries(locals.map(l => [l.id, l]));
 
-    if (remoteUpdatedAt > localUpdatedAt) {
-      await db[config.local].put(config.deserialize(remote));
+  const toWrite = [];
+  for (const remote of data) {
+    const localUpdatedAt = localMap[remote.id]?.updatedAt ?? 0;
+    if (remote.updated_at > localUpdatedAt) {
+      toWrite.push(config.deserialize(remote));
     }
+  }
+  if (toWrite.length > 0) {
+    await db[config.local].bulkPut(toWrite);
   }
 }
 

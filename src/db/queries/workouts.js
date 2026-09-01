@@ -12,6 +12,14 @@ export function getFinishedWorkoutsNewestFirst() {
   return db.workouts.where('finishedAt').above(0).reverse().toArray();
 }
 
+export function getFinishedWorkoutsByRoutine(routineId) {
+  return db.workouts
+    .where('finishedAt').above(0)
+    .filter(w => w.routineId === routineId)
+    .reverse()
+    .toArray();
+}
+
 export function getWorkoutForRoutineSince(routineId, timestamp) {
   return db.workouts
     .where('date')
