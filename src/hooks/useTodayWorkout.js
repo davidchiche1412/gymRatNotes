@@ -11,6 +11,7 @@ import {
   deleteWorkout,
 
   getFinishedWorkoutsByRoutine,
+  replaceWorkout,
   getWorkoutForRoutineSince,
   saveWorkout,
   finalizePastWorkouts,
@@ -26,6 +27,7 @@ import {
 } from '../utils/workoutSync';
 import { buildTodayWorkout, getTodayWorkoutProgress } from '../utils/todayWorkoutView';
 import { logError } from '../utils/logger';
+import { db } from '../db/database';
 
 function getTodayDow() {
   const jsDay = new Date().getDay();
@@ -89,16 +91,20 @@ async function loadTodayWorkoutData() {
     getExerciseInfoMap(routine),
     getPreviousDataMap(routine),
   ]);
-  const existing = await getExistingWorkoutForToday(routine);
-  const workout = existing
-    ? syncWorkoutWithRoutine(routine, existing, previousDataMap)
-    : createWorkoutFromRoutine(routine, previousDataMap, uuidv4(), Date.now());
+  // Transacción atómica: check si existe workout de hoy → crear o sincronizar
+  const workout = await db.transaction('rw', db.workouts, async () => {
+    const existing = await getExistingWorkoutForToday(routine);
+    const w = existing
+      ? syncWorkoutWithRoutine(routine, existing, previousDataMap)
+      : createWorkoutFromRoutine(routine, previousDataMap, uuidv4(), Date.now());
 
-  if (existing) {
-    await saveWorkout(workout);
-  } else {
-    await addWorkout(workout);
-  }
+    if (existing) {
+      await saveWorkout(w);
+    } else {
+      await addWorkout(w);
+    }
+    return w;
+  });
 
   return {
     routine,
@@ -231,8 +237,7 @@ export function useTodayWorkout() {
 
     const newWorkout = createWorkoutFromRoutine(routine, previousDataMap, uuidv4(), Date.now());
 
-    await deleteWorkout(workoutRef.current.id);
-    await addWorkout(newWorkout);
+    await replaceWorkout(workoutRef.current.id, newWorkout);
     workoutRef.current = newWorkout;
     setWorkoutData(newWorkout);
     setShowSaved(false);
