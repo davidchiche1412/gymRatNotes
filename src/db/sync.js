@@ -1,4 +1,4 @@
-import { logError } from '../utils/logger';
+import { logError, withTiming } from '../utils/logger';
 import { supabase } from './supabase';
 import { db } from './database';
 
@@ -157,8 +157,8 @@ export async function sync(userId) {
     const since = await getLastSyncAt();
     const now = Date.now();
 
-    await Promise.allSettled(CONFIGS.map(c => pushTable(c, userId)));
-    await Promise.allSettled(CONFIGS.map(c => pullTable(c, userId, since)));
+    await withTiming('sync:push', () => Promise.allSettled(CONFIGS.map(c => pushTable(c, userId))));
+    await withTiming('sync:pull', () => Promise.allSettled(CONFIGS.map(c => pullTable(c, userId, since))));
 
     await setLastSyncAt(now);
   } finally {
