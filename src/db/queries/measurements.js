@@ -1,7 +1,7 @@
 import { db } from '../database';
 
 export function getMeasurementsNewestFirst() {
-  return db.bodyMeasurements.orderBy('date').reverse().toArray();
+  return db.bodyMeasurements.orderBy('date').filter(m => !m.deletedAt).reverse().toArray();
 }
 
 export function addMeasurement(measurement) {
@@ -14,6 +14,7 @@ export function updateMeasurement(measurement) {
   return db.bodyMeasurements.put({ ...measurement, dirty: 1, updatedAt: measurement.updatedAt ?? now, createdAt: measurement.createdAt ?? now });
 }
 
-export function deleteMeasurementById(id) {
-  return db.bodyMeasurements.delete(id);
+export async function deleteMeasurementById(id) {
+  const now = Date.now();
+  return db.bodyMeasurements.update(id, { deletedAt: now, dirty: 1, updatedAt: now });
 }

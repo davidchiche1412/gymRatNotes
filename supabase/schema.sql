@@ -155,3 +155,19 @@ BEGIN
   END IF;
   -- UPDATE deshabilitado: las programaciones compartidas son inmutables
 END $$;
+
+
+-- ── V4: Soft-delete support ─────────────────────────────────────────────────
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'workouts' AND column_name = 'deletedAt') THEN
+    ALTER TABLE public.workouts ADD COLUMN "deletedAt" bigint DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'routines' AND column_name = 'deletedAt') THEN
+    ALTER TABLE public.routines ADD COLUMN "deletedAt" bigint DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'body_measurements' AND column_name = 'deletedAt') THEN
+    ALTER TABLE public.body_measurements ADD COLUMN "deletedAt" bigint DEFAULT NULL;
+  END IF;
+END $$;

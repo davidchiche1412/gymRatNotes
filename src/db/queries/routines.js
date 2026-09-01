@@ -2,7 +2,7 @@ import { sanitizeString } from '../../utils/sanitize';
 import { db } from '../database';
 
 export function getRoutines() {
-  return db.routines.toArray();
+  return db.routines.filter(r => !r.deletedAt).toArray();
 }
 
 export function getRoutine(id) {
@@ -19,13 +19,14 @@ export function updateRoutine(id, patch) {
   return db.routines.update(id, { ...sanitized, dirty: 1 });
 }
 
-export function deleteRoutineById(id) {
-  return db.routines.delete(id);
+export async function deleteRoutineById(id) {
+  const now = Date.now();
+  return db.routines.update(id, { deletedAt: now, dirty: 1, updatedAt: now });
 }
 
 export async function deleteRoutineAndClearSchedule(id) {
   await db.transaction('rw', db.routines, db.weeklySchedule, async () => {
-    await db.routines.delete(id);
+    await db.routines.update(id, { deletedAt: Date.now(), dirty: 1, updatedAt: Date.now() });
     const schedules = await db.weeklySchedule.where('routineId').equals(id).toArray();
     for (const schedule of schedules) {
       await db.weeklySchedule.update(schedule.id, { routineId: null, dirty: 1, updatedAt: Date.now() });

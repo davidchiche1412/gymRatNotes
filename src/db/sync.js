@@ -19,7 +19,7 @@ function serializeExercise(row, userId) {
 }
 
 function serializeRoutine(row, userId) {
-  return { id: row.id, user_id: userId, name: row.name, exercises: row.exercises, restTime: row.restTime, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+  return { id: row.id, user_id: userId, name: row.name, exercises: row.exercises, restTime: row.restTime, deletedAt: row.deletedAt ?? null, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
 }
 
 function serializeWeeklySchedule(row, userId) {
@@ -27,7 +27,7 @@ function serializeWeeklySchedule(row, userId) {
 }
 
 function serializeWorkout(row, userId) {
-  return { id: row.id, user_id: userId, date: row.date, routineId: row.routineId, status: row.status, exercises: row.exercises, prefilledExercises: row.prefilledExercises, finishedAt: row.finishedAt, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
+  return { id: row.id, user_id: userId, date: row.date, routineId: row.routineId, status: row.status, exercises: row.exercises, prefilledExercises: row.prefilledExercises, finishedAt: row.finishedAt, deletedAt: row.deletedAt ?? null, updated_at: row.updatedAt ?? Date.now(), created_at: row.createdAt ?? Date.now() };
 }
 
 function serializeBodyMeasurement(row, userId) {
@@ -46,7 +46,7 @@ function deserializeExercise(row) {
 }
 
 function deserializeRoutine(row) {
-  return { id: row.id, name: row.name, exercises: row.exercises, restTime: row.restTime, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+  return { id: row.id, name: row.name, exercises: row.exercises, restTime: row.restTime, deletedAt: row.deletedAt ?? null, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
 }
 
 function deserializeWeeklySchedule(row) {
@@ -54,7 +54,7 @@ function deserializeWeeklySchedule(row) {
 }
 
 function deserializeWorkout(row) {
-  return { id: row.id, date: row.date, routineId: row.routineId, status: row.status, exercises: row.exercises, prefilledExercises: row.prefilledExercises, finishedAt: row.finishedAt, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
+  return { id: row.id, date: row.date, routineId: row.routineId, status: row.status, exercises: row.exercises, prefilledExercises: row.prefilledExercises, finishedAt: row.finishedAt, deletedAt: row.deletedAt ?? null, updatedAt: row.updated_at, createdAt: row.created_at, dirty: 0 };
 }
 
 function deserializeBodyMeasurement(row) {
@@ -200,7 +200,21 @@ export async function initialPullAll(userId) {
       if (error) throw error;
       if (!data || data.length === 0) continue;
 
-      await db[config.local].bulkPut(data.map(config.deserialize));
+      // Comparar timestamps: no sobreescribir datos locales más recientes
+      const remoteIds = data.map(r => r.id);
+      const locals = await db[config.local].where('id').anyOf(remoteIds).toArray();
+      const localMap = Object.fromEntries(locals.map(l => [l.id, l]));
+
+      const toWrite = [];
+      for (const remote of data) {
+        const localUpdatedAt = localMap[remote.id]?.updatedAt ?? 0;
+        if (remote.updated_at >= localUpdatedAt) {
+          toWrite.push(config.deserialize(remote));
+        }
+      }
+      if (toWrite.length > 0) {
+        await db[config.local].bulkPut(toWrite);
+      }
     } catch (e) {
       logError('sync:pull:' + config.remote, e);
     }

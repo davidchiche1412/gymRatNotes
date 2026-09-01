@@ -2,21 +2,21 @@ import { db } from '../database';
 import { WORKOUT_STATUS } from '../../utils/workoutSync';
 
 export function getWorkouts() {
-  return db.workouts.toArray();
+  return db.workouts.filter(w => !w.deletedAt).toArray();
 }
 
 export function getFinishedWorkouts() {
-  return db.workouts.where('finishedAt').above(0).toArray();
+  return db.workouts.where('finishedAt').above(0).filter(w => !w.deletedAt).toArray();
 }
 
 export function getFinishedWorkoutsNewestFirst() {
-  return db.workouts.where('finishedAt').above(0).reverse().toArray();
+  return db.workouts.where('finishedAt').above(0).filter(w => !w.deletedAt).reverse().toArray();
 }
 
 export function getFinishedWorkoutsByRoutine(routineId) {
   return db.workouts
     .where('finishedAt').above(0)
-    .filter(w => w.routineId === routineId)
+    .filter(w => w.routineId === routineId && !w.deletedAt)
     .reverse()
     .toArray();
 }
@@ -25,7 +25,7 @@ export function getWorkoutForRoutineSince(routineId, timestamp) {
   return db.workouts
     .where('date')
     .aboveOrEqual(timestamp)
-    .filter(workout => workout.routineId === routineId)
+    .filter(workout => workout.routineId === routineId && !workout.deletedAt)
     .first();
 }
 
@@ -42,8 +42,9 @@ export function saveWorkout(workout) {
   return db.workouts.put(withDirty(workout));
 }
 
-export function deleteWorkout(id) {
-  return db.workouts.delete(id);
+export async function deleteWorkout(id) {
+  const now = Date.now();
+  return db.workouts.update(id, { deletedAt: now, dirty: 1, updatedAt: now });
 }
 
 export async function replaceWorkout(oldWorkoutId, nextWorkout) {
@@ -58,7 +59,7 @@ export async function finalizePastWorkouts(beforeTimestamp) {
     const pending = await db.workouts
       .where('date')
       .below(beforeTimestamp)
-      .filter(w => w.finishedAt == null || w.finishedAt === 0)
+      .filter(w => (w.finishedAt == null || w.finishedAt === 0) && !w.deletedAt)
       .toArray();
 
     if (pending.length === 0) return 0;
