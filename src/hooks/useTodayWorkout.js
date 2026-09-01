@@ -25,6 +25,7 @@ import {
   updateWorkoutSetValue,
 } from '../utils/workoutSync';
 import { buildTodayWorkout, getTodayWorkoutProgress } from '../utils/todayWorkoutView';
+import { logError } from '../utils/logger';
 
 function getTodayDow() {
   const jsDay = new Date().getDay();
@@ -126,7 +127,7 @@ export function useTodayWorkout() {
     setWorkoutData(workout);
 
     const snapshot = structuredClone(workout);
-    writeQueue.current = writeQueue.current.then(() => saveWorkout(snapshot)).catch(() => {});
+    writeQueue.current = writeQueue.current.then(() => saveWorkout(snapshot)).catch(e => logError('workout:save', e));
     await writeQueue.current;
   }, []);
 
@@ -157,8 +158,8 @@ export function useTodayWorkout() {
         setPreviousDataMap(data.previousDataMap);
         workoutRef.current = data.workout;
         setWorkoutData(data.workout);
-      } catch {
-        // IndexedDB puede fallar (cuota, corrupción). Degradar a día de descanso.
+      } catch (e) {
+        logError('workout:load', e);
       }
       if (!cancelled) setLoading(false);
     };

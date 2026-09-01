@@ -6,10 +6,12 @@ import { TimerProvider } from './context/TimerContext';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import { useSettings } from './hooks/useSettings';
 import { sync, initialPushAll, initialPullAll } from './db/sync';
+import { logError } from './utils/logger';
 
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const RoutinesPage = lazy(() => import('./pages/routines/RoutinesPage'));
@@ -55,17 +57,17 @@ function AppContent() {
       // Acaban de hacer login: primero pull (prioridad remoto) luego push local nuevo
       initialPullAll(user.id)
         .then(() => initialPushAll(user.id))
-        .catch(console.error);
+        .catch(e => logError('sync', e));
     } else {
       // Sesión ya activa: sync incremental
-      sync(user.id).catch(console.error);
+      sync(user.id).catch(e => logError('sync', e));
     }
   }, [user]);
 
   // Sync al recuperar conexión
   useEffect(() => {
     const onOnline = () => {
-      if (user?.id) sync(user.id).catch(console.error);
+      if (user?.id) sync(user.id).catch(e => logError('sync', e));
     };
     window.addEventListener('online', onOnline);
     return () => window.removeEventListener('online', onOnline);
@@ -75,7 +77,7 @@ function AppContent() {
   useEffect(() => {
     if (!user?.id) return;
     const id = setInterval(() => {
-      if (navigator.onLine) sync(user.id).catch(console.error);
+      if (navigator.onLine) sync(user.id).catch(e => logError('sync', e));
     }, 5 * 60 * 1000);
     return () => clearInterval(id);
   }, [user]);
@@ -97,12 +99,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <TimerProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </TimerProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <TimerProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </TimerProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

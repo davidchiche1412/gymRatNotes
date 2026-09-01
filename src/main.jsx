@@ -13,7 +13,7 @@ if (redirectPath) {
   window.history.replaceState(null, '', '/gymRatNotes' + cleaned);
 }
 
-initializeDatabase().catch(() => {}).finally(() => {
+initializeDatabase().catch(() => { /* seed fail: app works with empty DB */ }).finally(() => {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <App />

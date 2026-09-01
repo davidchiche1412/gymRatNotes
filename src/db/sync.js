@@ -1,3 +1,4 @@
+import { logError } from '../utils/logger';
 import { supabase } from './supabase';
 import { db } from './database';
 
@@ -178,8 +179,8 @@ export async function initialPushAll(userId) {
       const { error } = await supabase.from(config.remote).upsert(remote, { onConflict: 'id' });
       if (error) throw error;
       await db[config.local].bulkPut(rows.map(r => ({ ...r, dirty: 0 })));
-    } catch {
-      // Tabla falla → mantiene dirty:1, se reintentará en próximo sync
+    } catch (e) {
+      logError('sync:push:' + config.remote, e);
     }
   }
 
@@ -200,8 +201,8 @@ export async function initialPullAll(userId) {
       if (!data || data.length === 0) continue;
 
       await db[config.local].bulkPut(data.map(config.deserialize));
-    } catch {
-      // Tabla falla → continuamos con las demás, próximo sync completará
+    } catch (e) {
+      logError('sync:pull:' + config.remote, e);
     }
   }
 
